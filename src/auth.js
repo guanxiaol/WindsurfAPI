@@ -200,6 +200,9 @@ export function removeAccount(id) {
   const account = accounts[idx];
   accounts.splice(idx, 1);
   saveAccounts();
+  // Drop any Cascade conversations owned by this key so future requests
+  // don't try to resume on an account that no longer exists.
+  import('./conversation-pool.js').then(m => m.invalidateFor({ apiKey: account.apiKey })).catch(() => {});
   log.info(`Account removed: ${id} (${account.email})`);
   return true;
 }
@@ -249,6 +252,32 @@ export function getApiKey(excludeKeys = []) {
     id: account.id, email: account.email, apiKey: account.apiKey,
     apiServerUrl: account.apiServerUrl || '',
     proxy: getEffectiveProxy(account.id) || null,
+  };
+}
+
+/**
+ * Try to re-check-out a specific account by apiKey, applying the same
+ * rate-limit / status guards as getApiKey(). Used by the conversation pool
+ * when a pool hit requires routing back to the exact account that owns the
+ * upstream cascade_id — if that account is momentarily unavailable we fall
+ * back to a fresh cascade on a different account instead of queuing.
+ */
+export function acquireAccountByKey(apiKey) {
+  const now = Date.now();
+  const a = accounts.find(x => x.apiKey === apiKey);
+  if (!a) return null;
+  if (a.status !== 'active') return null;
+  if (a.rateLimitedUntil && a.rateLimitedUntil > now) return null;
+  const limit = rpmLimitFor(a);
+  if (limit <= 0) return null;
+  const used = pruneRpmHistory(a, now);
+  if (used >= limit) return null;
+  a._rpmHistory.push(now);
+  a.lastUsed = now;
+  return {
+    id: a.id, email: a.email, apiKey: a.apiKey,
+    apiServerUrl: a.apiServerUrl || '',
+    proxy: getEffectiveProxy(a.id) || null,
   };
 }
 

@@ -13,6 +13,8 @@ import { restartLsForProxy } from '../langserver.js';
 import { getLsStatus, stopLanguageServer, startLanguageServer, isLanguageServerRunning } from '../langserver.js';
 import { getStats, resetStats, recordRequest } from './stats.js';
 import { cacheStats, cacheClear } from '../cache.js';
+import { getExperimental, setExperimental } from '../runtime-config.js';
+import { poolStats as convPoolStats, poolClear as convPoolClear } from '../conversation-pool.js';
 import { getLogs, subscribeToLogs, unsubscribeFromLogs } from './logger.js';
 import { getProxyConfig, setGlobalProxy, setAccountProxy, removeProxy, getEffectiveProxy } from './proxy-config.js';
 import { MODELS } from '../models.js';
@@ -75,6 +77,22 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
         : '0.0',
       cache: cacheStats(),
     });
+  }
+
+  // ─── Experimental features ────────────────────────────
+  if (subpath === '/experimental' && method === 'GET') {
+    return json(res, 200, { flags: getExperimental(), conversationPool: convPoolStats() });
+  }
+  if (subpath === '/experimental' && method === 'PUT') {
+    const flags = setExperimental(body || {});
+    // Dropping the toggle should also drop any live entries so nothing
+    // resumes against a disabled feature on the next request.
+    if (!flags.cascadeConversationReuse) convPoolClear();
+    return json(res, 200, { success: true, flags });
+  }
+  if (subpath === '/experimental/conversation-pool' && method === 'DELETE') {
+    const n = convPoolClear();
+    return json(res, 200, { success: true, cleared: n });
   }
 
   // ─── Cache ────────────────────────────────────────────

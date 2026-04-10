@@ -312,6 +312,24 @@ code {
 
 .btn-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 
+/* ─── Switch ──────────────────────────────────── */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 22px; transition: .18s;
+}
+.switch-slider::before {
+  content: ''; position: absolute; height: 16px; width: 16px;
+  left: 2px; bottom: 2px; background: var(--text);
+  border-radius: 50%; transition: .18s;
+}
+.switch input:checked + .switch-slider {
+  background: var(--accent); border-color: var(--accent);
+}
+.switch input:checked + .switch-slider::before { transform: translateX(18px); background: #fff; }
+
 /* ─── Form Controls ───────────────────────────── */
 .input, .select, .textarea {
   display: block;
@@ -895,6 +913,10 @@ tbody tr:hover td { background: var(--surface-2); }
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
         <span>运行日志</span>
       </a>
+      <a href="#experimental" data-panel="experimental">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V2"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/></svg>
+        <span>实验性功能</span>
+      </a>
     </div>
   </nav>
   <div class="footer">
@@ -1306,6 +1328,42 @@ tbody tr:hover td { background: var(--surface-2); }
       </div>
     </div>
   </section>
+
+  <section class="panel" id="p-experimental">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">实验性功能</h1>
+        <div class="page-subtitle">尚未稳定的优化项；如果发现异常可以随时关闭</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Cascade 对话复用</div>
+      </div>
+      <div class="section-body">
+        <div class="section-desc" style="margin-bottom:12px">
+          多轮对话时复用同一个 <code>cascade_id</code>，只把最新一条 user 消息发给 Windsurf，
+          让服务端维持上下文缓存。命中时可显著降低 TTFB 与上传体积；未命中或账号/LS 变更会自动回退到新会话。
+          需要客户端保留完整历史并按顺序追加（如 new-api、OpenWebUI）。
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+          <label class="switch">
+            <input type="checkbox" id="exp-cascade-reuse" onchange="App.toggleExperimental('cascadeConversationReuse', this.checked)">
+            <span class="switch-slider"></span>
+          </label>
+          <div>
+            <div style="font-weight:500">启用 Cascade 对话复用</div>
+            <div class="text-sm text-muted">默认关闭。开启后对当前对话池立即生效。</div>
+          </div>
+        </div>
+        <div class="metrics-grid" id="exp-pool-cards"></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-outline btn-sm" onclick="App.clearConversationPool()">清空对话池</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.loadExperimental()">刷新</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <!-- Login Overlay -->
@@ -1385,6 +1443,7 @@ const App = {
       overview: 'loadOverview', 'windsurf-login': 'loadWindsurfLogin',
       accounts: 'loadAccounts', models: 'loadModels', proxy: 'loadProxy',
       logs: 'loadLogs', stats: 'loadStats', bans: 'loadBans',
+      experimental: 'loadExperimental',
     };
     if (loaders[panel]) this[loaders[panel]]();
   },
@@ -2073,6 +2132,50 @@ const App = {
     await this.api('DELETE', '/stats');
     this.toast('统计已重置');
     this.loadStats();
+  },
+
+  // ─── Experimental features ───────────────────
+  async loadExperimental() {
+    const d = await this.api('GET', '/experimental');
+    const cb = document.getElementById('exp-cascade-reuse');
+    if (cb) cb.checked = !!d.flags?.cascadeConversationReuse;
+    const pool = d.conversationPool || {};
+    document.getElementById('exp-pool-cards').innerHTML = `
+      <div class="card info">
+        <div class="card-header"><div class="card-title">命中率</div></div>
+        <div class="card-value">${pool.hitRate || '0.0'}%</div>
+        <div class="card-sub">${pool.hits || 0} 命中 / ${pool.misses || 0} 未命中</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">对话池</div></div>
+        <div class="card-value">${pool.size || 0}</div>
+        <div class="card-sub">上限 ${pool.maxSize || 0} · TTL ${Math.round((pool.ttlMs || 0) / 60000)} 分钟</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">存储次数</div></div>
+        <div class="card-value">${pool.stores || 0}</div>
+        <div class="card-sub">过期 ${pool.expired || 0} · 淘汰 ${pool.evictions || 0}</div>
+      </div>
+    `;
+  },
+
+  async toggleExperimental(key, enabled) {
+    try {
+      await this.api('PUT', '/experimental', { [key]: enabled });
+      this.toast(`${enabled ? '已启用' : '已关闭'}实验性功能`, 'success');
+      this.loadExperimental();
+    } catch (e) {
+      this.toast('切换失败：' + e.message, 'error');
+      this.loadExperimental();
+    }
+  },
+
+  async clearConversationPool() {
+    const ok = await this.confirm('清空对话池', '当前所有进行中的 Cascade 会话都将放弃复用，确定继续吗？', { okText: '清空' });
+    if (!ok) return;
+    const r = await this.api('DELETE', '/experimental/conversation-pool');
+    this.toast(`已清空 ${r.cleared || 0} 条会话`, 'success');
+    this.loadExperimental();
   },
 
   // ─── Ban Detection ───────────────────────────

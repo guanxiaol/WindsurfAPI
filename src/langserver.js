@@ -136,7 +136,11 @@ export async function ensureLs(proxy = null) {
   });
   proc.on('exit', (code, signal) => {
     log.warn(`LS instance ${key} exited: code=${code} signal=${signal}`);
+    const gone = _pool.get(key);
     _pool.delete(key);
+    if (gone?.port) {
+      import('./conversation-pool.js').then(m => m.invalidateFor({ lsPort: gone.port })).catch(() => {});
+    }
   });
   proc.on('error', (err) => {
     log.error(`LS instance ${key} spawn error: ${err.message}`);

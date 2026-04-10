@@ -5,13 +5,17 @@
 
 import { randomUUID } from 'crypto';
 import { WindsurfClient } from '../client.js';
-import { getApiKey, reportError, reportSuccess, markRateLimited, updateCapability } from '../auth.js';
+import { getApiKey, acquireAccountByKey, reportError, reportSuccess, markRateLimited, updateCapability } from '../auth.js';
 import { resolveModel, getModelInfo } from '../models.js';
 import { getLsFor, ensureLs } from '../langserver.js';
 import { config, log } from '../config.js';
 import { recordRequest } from '../dashboard/stats.js';
 import { isModelAllowed } from '../dashboard/model-access.js';
 import { cacheKey, cacheGet, cacheSet } from '../cache.js';
+import { isExperimentalEnabled } from '../runtime-config.js';
+import {
+  fingerprintBefore, fingerprintAfter, checkout as poolCheckout, checkin as poolCheckin,
+} from '../conversation-pool.js';
 
 const HEARTBEAT_MS = 15_000;
 const QUEUE_RETRY_MS = 1_000;
@@ -112,21 +116,53 @@ export async function handleChatCompletions(body) {
     };
   }
 
+  // ── Cascade conversation pool (experimental) ──
+  // If the client is continuing a prior conversation and we still hold the
+  // cascade_id from last turn, pin this request to that exact (account, LS)
+  // pair so the Windsurf backend serves from its hot per-cascade context
+  // instead of replaying the whole history.
+  const reuseEnabled = useCascade && isExperimentalEnabled('cascadeConversationReuse');
+  const fpBefore = reuseEnabled ? fingerprintBefore(messages) : null;
+  let reuseEntry = reuseEnabled ? poolCheckout(fpBefore) : null;
+  if (reuseEntry) log.info(`Chat: cascade reuse HIT cascadeId=${reuseEntry.cascadeId.slice(0, 8)}… model=${displayModel}`);
+
   // Non-stream: retry with a different account on model-not-available errors
   const tried = [];
   let lastErr = null;
   const maxAttempts = 3;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const acct = await waitForAccount(tried, null);
-    if (!acct) break;
+    let acct = null;
+    if (reuseEntry && attempt === 0) {
+      // First attempt pins to the account that owns the cached cascade.
+      acct = acquireAccountByKey(reuseEntry.apiKey);
+      if (!acct) {
+        log.info('Chat: cascade reuse skipped — owning account not available, falling back to fresh cascade');
+        reuseEntry = null;
+      }
+    }
+    if (!acct) {
+      acct = await waitForAccount(tried, null);
+      if (!acct) break;
+    }
     tried.push(acct.apiKey);
     await ensureLs(acct.proxy);
     const ls = getLsFor(acct.proxy);
     if (!ls) { lastErr = { status: 503, body: { error: { message: 'No LS instance available', type: 'ls_unavailable' } } }; break; }
-    log.info(`Chat: model=${displayModel} flow=${useCascade ? 'cascade' : 'legacy'} attempt=${attempt + 1} account=${acct.email} ls=${ls.port}`);
+    // Cascade pins cascade_id to a specific LS port too; if the LS it was
+    // born on has been replaced, the cascade_id is dead.
+    if (reuseEntry && reuseEntry.lsPort !== ls.port) {
+      log.info('Chat: cascade reuse skipped — LS port changed');
+      reuseEntry = null;
+    }
+    log.info(`Chat: model=${displayModel} flow=${useCascade ? 'cascade' : 'legacy'} attempt=${attempt + 1} account=${acct.email} ls=${ls.port}${reuseEntry ? ' reuse=1' : ''}`);
     const client = new WindsurfClient(acct.apiKey, ls.port, ls.csrfToken);
-    const result = await nonStreamResponse(client, chatId, created, displayModel, modelKey, messages, modelEnum, modelUid, useCascade, acct.apiKey, ckey);
+    const result = await nonStreamResponse(
+      client, chatId, created, displayModel, modelKey, messages, modelEnum, modelUid,
+      useCascade, acct.apiKey, ckey,
+      reuseEnabled ? { reuseEntry, lsPort: ls.port, apiKey: acct.apiKey } : null,
+    );
     if (result.status === 200) return result;
+    reuseEntry = null; // don't try to reuse on the retry
     lastErr = result;
     if (result.body?.error?.type !== 'model_not_available') break;
     log.warn(`Account ${acct.email} lacks ${displayModel}, trying next account`);
@@ -134,23 +170,38 @@ export async function handleChatCompletions(body) {
   return lastErr || { status: 503, body: { error: { message: 'No active accounts available', type: 'pool_exhausted' } } };
 }
 
-async function nonStreamResponse(client, id, created, model, modelKey, messages, modelEnum, modelUid, useCascade, apiKey, ckey) {
+async function nonStreamResponse(client, id, created, model, modelKey, messages, modelEnum, modelUid, useCascade, apiKey, ckey, poolCtx) {
   const startTime = Date.now();
   try {
     let allText = '';
     let allThinking = '';
+    let cascadeMeta = null;
 
     if (useCascade) {
-      const chunks = await client.cascadeChat(messages, modelEnum, modelUid);
+      const chunks = await client.cascadeChat(messages, modelEnum, modelUid, { reuseEntry: poolCtx?.reuseEntry || null });
       for (const c of chunks) {
         if (c.text) allText += c.text;
         if (c.thinking) allThinking += c.thinking;
       }
+      cascadeMeta = { cascadeId: chunks.cascadeId, sessionId: chunks.sessionId };
     } else {
       const chunks = await client.rawGetChatMessage(messages, modelEnum, modelUid);
       for (const c of chunks) {
         if (c.text) allText += c.text;
       }
+    }
+
+    // Check the cascade back into the pool under the *post-turn* fingerprint
+    // so the next request in the same conversation can resume it.
+    if (poolCtx && cascadeMeta?.cascadeId && allText) {
+      const fpAfter = fingerprintAfter(messages, allText);
+      poolCheckin(fpAfter, {
+        cascadeId: cascadeMeta.cascadeId,
+        sessionId: cascadeMeta.sessionId,
+        lsPort: poolCtx.lsPort,
+        apiKey: poolCtx.apiKey,
+        createdAt: poolCtx.reuseEntry?.createdAt,
+      });
     }
 
     reportSuccess(apiKey);
@@ -267,6 +318,12 @@ function streamResponse(id, created, model, modelKey, messages, modelEnum, model
       let accText = '';
       let accThinking = '';
 
+      // Cascade conversation pool (experimental, stream path)
+      const reuseEnabled = useCascade && isExperimentalEnabled('cascadeConversationReuse');
+      const fpBefore = reuseEnabled ? fingerprintBefore(messages) : null;
+      let reuseEntry = reuseEnabled ? poolCheckout(fpBefore) : null;
+      if (reuseEntry) log.info(`Chat: cascade reuse HIT cascadeId=${reuseEntry.cascadeId.slice(0, 8)}… stream model=${model}`);
+
       const onChunk = (chunk) => {
         if (!rolePrinted) {
           rolePrinted = true;
@@ -289,20 +346,48 @@ function streamResponse(id, created, model, modelKey, messages, modelEnum, model
       try {
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
           if (abortController.signal.aborted) return;
-          const acct = await waitForAccount(tried, abortController.signal);
-          if (!acct) break;
+          let acct = null;
+          if (reuseEntry && attempt === 0) {
+            acct = acquireAccountByKey(reuseEntry.apiKey);
+            if (!acct) {
+              log.info('Chat: cascade reuse skipped — owning account not available');
+              reuseEntry = null;
+            }
+          }
+          if (!acct) {
+            acct = await waitForAccount(tried, abortController.signal);
+            if (!acct) break;
+          }
           tried.push(acct.apiKey);
           currentApiKey = acct.apiKey;
           try { await ensureLs(acct.proxy); } catch (e) { lastErr = e; break; }
           const ls = getLsFor(acct.proxy);
           if (!ls) { lastErr = new Error('No LS instance available'); break; }
-          log.info(`Chat: model=${model} flow=${useCascade ? 'cascade' : 'legacy'} stream=true attempt=${attempt + 1} account=${acct.email} ls=${ls.port}`);
+          if (reuseEntry && reuseEntry.lsPort !== ls.port) {
+            log.info('Chat: cascade reuse skipped — LS port changed');
+            reuseEntry = null;
+          }
+          log.info(`Chat: model=${model} flow=${useCascade ? 'cascade' : 'legacy'} stream=true attempt=${attempt + 1} account=${acct.email} ls=${ls.port}${reuseEntry ? ' reuse=1' : ''}`);
           const client = new WindsurfClient(acct.apiKey, ls.port, ls.csrfToken);
+          let cascadeResult = null;
           try {
             if (useCascade) {
-              await client.cascadeChat(messages, modelEnum, modelUid, { onChunk, signal: abortController.signal });
+              cascadeResult = await client.cascadeChat(messages, modelEnum, modelUid, {
+                onChunk, signal: abortController.signal, reuseEntry,
+              });
             } else {
               await client.rawGetChatMessage(messages, modelEnum, modelUid, { onChunk });
+            }
+            // Pool check-in on success (cascade only)
+            if (reuseEnabled && cascadeResult?.cascadeId && accText) {
+              const fpAfter = fingerprintAfter(messages, accText);
+              poolCheckin(fpAfter, {
+                cascadeId: cascadeResult.cascadeId,
+                sessionId: cascadeResult.sessionId,
+                lsPort: ls.port,
+                apiKey: currentApiKey,
+                createdAt: reuseEntry?.createdAt,
+              });
             }
             // success
             if (hadSuccess) reportSuccess(currentApiKey);
@@ -336,6 +421,7 @@ function streamResponse(id, created, model, modelKey, messages, modelEnum, model
             return;
           } catch (err) {
             lastErr = err;
+            reuseEntry = null; // don't try to reuse on retry
             const isAuthFail = /unauthenticated|invalid api key|invalid_grant|permission_denied.*account/i.test(err.message);
             const isRateLimit = /rate limit|rate_limit|too many requests|quota/i.test(err.message);
             if (isAuthFail) reportError(currentApiKey);

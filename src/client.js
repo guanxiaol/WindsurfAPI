@@ -24,6 +24,14 @@ import {
 
 const LS_SERVICE = '/exa.language_server_pb.LanguageServerService';
 
+function contentToString(content) {
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map(p => (typeof p?.text === 'string' ? p.text : JSON.stringify(p))).join('');
+  }
+  return content == null ? '' : JSON.stringify(content);
+}
+
 // ─── WindsurfClient ────────────────────────────────────────
 
 export class WindsurfClient {
@@ -147,36 +155,68 @@ export class WindsurfClient {
    * @param {object} opts - { onChunk, onEnd, onError }
    */
   async cascadeChat(messages, modelEnum, modelUid, opts = {}) {
-    const { onChunk, onEnd, onError, signal } = opts;
+    const { onChunk, onEnd, onError, signal, reuseEntry } = opts;
     const aborted = () => signal?.aborted;
 
-    log.debug(`CascadeChat: uid=${modelUid} enum=${modelEnum} msgs=${messages.length}`);
+    log.debug(`CascadeChat: uid=${modelUid} enum=${modelEnum} msgs=${messages.length} reuse=${!!reuseEntry}`);
 
     // One-shot per-LS workspace init (idempotent; typically pre-warmed at
     // LS startup). Falls back to a local session id if the LS entry is gone.
     const lsEntry = getLsEntryByPort(this.port);
     await this.warmupCascade().catch(() => {});
-    const sessionId = lsEntry?.sessionId || randomUUID();
+    const sessionId = reuseEntry?.sessionId || lsEntry?.sessionId || randomUUID();
 
     try {
-      // Step 1: Start cascade
-      const startProto = buildStartCascadeRequest(this.apiKey, sessionId);
-      const startResp = await grpcUnary(
-        this.port, this.csrfToken, `${LS_SERVICE}/StartCascade`, grpcFrame(startProto)
-      );
-      const cascadeId = parseStartCascadeResponse(startResp);
-      if (!cascadeId) throw new Error('StartCascade returned empty cascade_id');
-      log.debug(`Cascade started: ${cascadeId}`);
+      // Step 1: Start cascade — unless the caller handed us a live cascadeId
+      // from the conversation pool, in which case we skip StartCascade and
+      // just SendUserCascadeMessage onto the existing cascade so the backend
+      // keeps its per-cascade context hot.
+      let cascadeId;
+      if (reuseEntry?.cascadeId) {
+        cascadeId = reuseEntry.cascadeId;
+        log.debug(`Cascade resumed: ${cascadeId}`);
+      } else {
+        const startProto = buildStartCascadeRequest(this.apiKey, sessionId);
+        const startResp = await grpcUnary(
+          this.port, this.csrfToken, `${LS_SERVICE}/StartCascade`, grpcFrame(startProto)
+        );
+        cascadeId = parseStartCascadeResponse(startResp);
+        if (!cascadeId) throw new Error('StartCascade returned empty cascade_id');
+        log.debug(`Cascade started: ${cascadeId}`);
+      }
 
-      // Build user text (combine system + user messages for Cascade)
-      const systemMsgs = messages.filter(m => m.role === 'system');
-      const userMsgs = messages.filter(m => m.role !== 'system' && m.role !== 'assistant');
-      const lastUser = userMsgs[userMsgs.length - 1];
+      // Build the text payload. Two cases:
+      //   - Resuming an existing cascade: the backend already has the prior
+      //     turns cached, so we only send the newest user message.
+      //   - Fresh cascade: we have to pack the entire history into one shot
+      //     (Cascade doesn't accept a messages array). System blocks go on
+      //     top, then we render u/a turns as a labeled transcript so the
+      //     model can see its own prior replies — previously we dropped
+      //     assistant turns entirely and multi-turn context was broken.
+      let text;
+      if (reuseEntry?.cascadeId) {
+        const lastUser = [...messages].reverse().find(m => m.role === 'user');
+        text = lastUser ? contentToString(lastUser.content) : '';
+      } else {
+        const systemMsgs = messages.filter(m => m.role === 'system');
+        const convo = messages.filter(m => m.role === 'user' || m.role === 'assistant');
+        const sysText = systemMsgs.map(m => contentToString(m.content)).join('\n').trim();
 
-      let text = lastUser ? (typeof lastUser.content === 'string' ? lastUser.content : JSON.stringify(lastUser.content)) : '';
-      if (systemMsgs.length) {
-        const sysText = systemMsgs.map(m => typeof m.content === 'string' ? m.content : JSON.stringify(m.content)).join('\n');
-        text = sysText + '\n\n' + text;
+        if (convo.length <= 1) {
+          const last = convo[convo.length - 1];
+          text = last ? contentToString(last.content) : '';
+        } else {
+          const lines = [];
+          for (let i = 0; i < convo.length - 1; i++) {
+            const m = convo[i];
+            const label = m.role === 'user' ? 'User' : 'Assistant';
+            lines.push(`${label}: ${contentToString(m.content)}`);
+          }
+          const latest = convo[convo.length - 1];
+          const latestText = latest ? contentToString(latest.content) : '';
+          text = `[Conversation so far]\n${lines.join('\n\n')}\n\n[Current user message]\n${latestText}`;
+        }
+        if (sysText) text = sysText + '\n\n' + text;
       }
 
       // Step 2: Send message
@@ -258,6 +298,11 @@ export class WindsurfClient {
       }
 
       onEnd?.(chunks);
+      // Attach cascade metadata so the caller can check it back into the
+      // conversation pool. We still return the array so existing callers
+      // that iterate over it keep working.
+      chunks.cascadeId = cascadeId;
+      chunks.sessionId = sessionId;
       return chunks;
 
     } catch (err) {

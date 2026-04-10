@@ -14,7 +14,7 @@ async function main() {
   const binaryPath = config.lsBinaryPath;
   if (existsSync(binaryPath)) {
     try {
-      execSync('mkdir -p /opt/windsurf/data/db', { stdio: 'ignore' });
+      execSync('mkdir -p /opt/windsurf/data/db /tmp/windsurf-workspace', { stdio: 'ignore' });
     } catch {}
 
     await startLanguageServer({
@@ -45,14 +45,26 @@ async function main() {
 
   const server = startServer();
 
-  const shutdown = () => {
-    log.info('Shutting down...');
-    stopLanguageServer();
-    server.close(() => process.exit(0));
-    setTimeout(() => process.exit(1), 5000);
+  let shuttingDown = false;
+  const shutdown = (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    const inflight = server.getActiveRequests?.() ?? '?';
+    log.info(`${signal} received — draining ${inflight} in-flight requests (up to 30s)...`);
+    if (typeof server.closeIdleConnections === 'function') server.closeIdleConnections();
+    server.close(() => {
+      log.info('HTTP server closed, stopping language server');
+      try { stopLanguageServer(); } catch {}
+      process.exit(0);
+    });
+    setTimeout(() => {
+      log.warn('Drain timeout, forcing exit');
+      try { stopLanguageServer(); } catch {}
+      process.exit(0);
+    }, 30_000);
   };
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
 
 main().catch(err => { console.error('Fatal:', err); process.exit(1); });

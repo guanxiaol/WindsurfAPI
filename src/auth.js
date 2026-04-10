@@ -11,6 +11,7 @@
 import { randomUUID } from 'crypto';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { config, log } from './config.js';
+import { getEffectiveProxy } from './dashboard/proxy-config.js';
 
 import { join } from 'path';
 const ACCOUNTS_FILE = join(process.cwd(), 'accounts.json');
@@ -26,6 +27,7 @@ function saveAccounts() {
       id: a.id, email: a.email, apiKey: a.apiKey,
       apiServerUrl: a.apiServerUrl, method: a.method,
       status: a.status, addedAt: a.addedAt,
+      tier: a.tier, capabilities: a.capabilities, lastProbed: a.lastProbed,
     }));
     writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2));
   } catch (e) {
@@ -48,6 +50,9 @@ function loadAccounts() {
         lastUsed: 0, errorCount: 0,
         refreshToken: '', expiresAt: 0, refreshTimer: null,
         addedAt: a.addedAt || Date.now(),
+        tier: a.tier || 'unknown',
+        capabilities: a.capabilities || {},
+        lastProbed: a.lastProbed || 0,
       });
     }
     if (data.length > 0) log.info(`Loaded ${data.length} account(s) from disk`);
@@ -85,6 +90,9 @@ export function addAccountByKey(apiKey, label = '') {
     expiresAt: 0,
     refreshTimer: null,
     addedAt: Date.now(),
+    tier: 'unknown',
+    capabilities: {},
+    lastProbed: 0,
   };
   accounts.push(account);
   saveAccounts();
@@ -184,16 +192,51 @@ export function removeAccount(id) {
  * Get next available API key via round-robin.
  * Skips accounts with status != 'active'.
  */
-export function getApiKey() {
-  const active = accounts.filter(a => a.status === 'active');
+export function getApiKey(excludeKeys = []) {
+  const now = Date.now();
+  const active = accounts.filter(a =>
+    a.status === 'active' &&
+    !excludeKeys.includes(a.apiKey) &&
+    !(a.rateLimitedUntil && a.rateLimitedUntil > now)
+  );
   if (active.length === 0) return null;
 
   _roundRobinIndex = _roundRobinIndex % active.length;
   const account = active[_roundRobinIndex];
   _roundRobinIndex = (_roundRobinIndex + 1) % active.length;
 
-  account.lastUsed = Date.now();
-  return { apiKey: account.apiKey, apiServerUrl: account.apiServerUrl || '' };
+  account.lastUsed = now;
+  return {
+    id: account.id, email: account.email, apiKey: account.apiKey,
+    apiServerUrl: account.apiServerUrl || '',
+    proxy: getEffectiveProxy(account.id) || null,
+  };
+}
+
+/**
+ * Ensure an LS instance exists for an account's proxy.
+ * Used on startup and after adding new accounts so chat requests don't race
+ * the first-time LS spawn.
+ */
+export async function ensureLsForAccount(accountId) {
+  const { ensureLs } = await import('./langserver.js');
+  const proxy = getEffectiveProxy(accountId) || null;
+  try {
+    await ensureLs(proxy);
+  } catch (e) {
+    log.error(`Failed to start LS for account ${accountId}: ${e.message}`);
+  }
+}
+
+/**
+ * Mark an account as rate-limited for a duration (default 1 hour).
+ * The account stays 'active' but is skipped until the cooldown expires.
+ */
+export function markRateLimited(apiKey, durationMs = 60 * 60 * 1000) {
+  const account = accounts.find(a => a.apiKey === apiKey);
+  if (!account) return;
+  account.rateLimitedUntil = Date.now() + durationMs;
+  log.warn(`Account ${account.id} (${account.email}) rate-limited for ${Math.round(durationMs / 60000)} min`);
 }
 
 /**
@@ -228,6 +271,7 @@ export function isAuthenticated() {
 }
 
 export function getAccountList() {
+  const now = Date.now();
   return accounts.map(a => ({
     id: a.id,
     email: a.email,
@@ -237,7 +281,99 @@ export function getAccountList() {
     lastUsed: a.lastUsed ? new Date(a.lastUsed).toISOString() : null,
     addedAt: new Date(a.addedAt).toISOString(),
     keyPrefix: a.apiKey.slice(0, 8) + '...',
+    apiKey: a.apiKey,
+    tier: a.tier || 'unknown',
+    capabilities: a.capabilities || {},
+    lastProbed: a.lastProbed || 0,
+    rateLimitedUntil: a.rateLimitedUntil || 0,
+    rateLimited: !!(a.rateLimitedUntil && a.rateLimitedUntil > now),
   }));
+}
+
+/**
+ * Update the capability of an account for a specific model.
+ * reason: 'success' | 'model_error' | 'rate_limit' | 'transport_error'
+ */
+export function updateCapability(apiKey, modelKey, ok, reason = '') {
+  const account = accounts.find(a => a.apiKey === apiKey);
+  if (!account) return;
+  if (!account.capabilities) account.capabilities = {};
+  // Don't overwrite a confirmed failure with a transient error
+  if (reason === 'transport_error') return;
+  // rate_limit is temporary — don't mark as permanently failed
+  if (!ok && reason === 'rate_limit') return;
+  account.capabilities[modelKey] = {
+    ok,
+    lastCheck: Date.now(),
+    reason,
+  };
+  account.tier = inferTier(account.capabilities);
+  saveAccounts();
+}
+
+/**
+ * Infer subscription tier from which canary models work.
+ */
+function inferTier(caps) {
+  const works = (m) => caps[m]?.ok === true;
+  if (works('claude-opus-4.6') || works('claude-sonnet-4.6')) return 'pro';
+  if (works('gemini-2.5-flash') || works('gpt-4o-mini')) return 'free';
+  // If everything we tried failed
+  const checked = Object.keys(caps);
+  if (checked.length > 0 && checked.every(m => caps[m].ok === false)) return 'expired';
+  return 'unknown';
+}
+
+/**
+ * Probe an account's model capabilities by sending tiny canary requests.
+ * Returns updated capabilities map.
+ */
+export async function probeAccount(id) {
+  const account = accounts.find(a => a.id === id);
+  if (!account) return null;
+
+  const { WindsurfClient } = await import('./client.js');
+  const { getModelInfo } = await import('./models.js');
+  const { ensureLs, getLsFor } = await import('./langserver.js');
+
+  const canaries = ['gpt-4o-mini', 'gemini-2.5-flash', 'claude-sonnet-4.6', 'claude-opus-4.6'];
+  const proxy = getEffectiveProxy(account.id) || null;
+  await ensureLs(proxy);
+  const ls = getLsFor(proxy);
+  if (!ls) { log.error(`No LS available for account ${account.id}`); return null; }
+  const port = ls.port;
+  const csrf = ls.csrfToken;
+
+  log.info(`Probing account ${account.id} (${account.email}) across ${canaries.length} models`);
+
+  for (const modelKey of canaries) {
+    const info = getModelInfo(modelKey);
+    if (!info) continue;
+    const useCascade = !!(info.modelUid && info.enumValue === 0);
+    const client = new WindsurfClient(account.apiKey, port, csrf);
+    try {
+      if (useCascade) {
+        await client.cascadeChat([{ role: 'user', content: 'hi' }], info.enumValue, info.modelUid);
+      } else {
+        await client.rawGetChatMessage([{ role: 'user', content: 'hi' }], info.enumValue, info.modelUid);
+      }
+      updateCapability(account.apiKey, modelKey, true, 'success');
+      log.info(`  ${modelKey}: OK`);
+    } catch (err) {
+      const isRateLimit = /rate limit|rate_limit|too many requests|quota/i.test(err.message);
+      if (isRateLimit) {
+        log.info(`  ${modelKey}: RATE_LIMITED (skipped)`);
+      } else {
+        updateCapability(account.apiKey, modelKey, false, 'model_error');
+        log.info(`  ${modelKey}: FAIL (${err.message.slice(0, 80)})`);
+      }
+    }
+  }
+
+  account.lastProbed = Date.now();
+  saveAccounts();
+  log.info(`Probe complete for ${account.id}: tier=${account.tier}`);
+  return { tier: account.tier, capabilities: account.capabilities };
 }
 
 export function getAccountCount() {
@@ -283,6 +419,30 @@ export async function initAuth() {
   // Use token-based auth instead
 
   if (promises.length > 0) await Promise.allSettled(promises);
+
+  // Periodic re-probe so tier/capability info doesn't drift as quotas reset.
+  const REPROBE_INTERVAL = 6 * 60 * 60 * 1000;
+  setInterval(async () => {
+    for (const a of accounts) {
+      if (a.status !== 'active') continue;
+      try { await probeAccount(a.id); }
+      catch (e) { log.warn(`Scheduled probe ${a.id} failed: ${e.message}`); }
+    }
+  }, REPROBE_INTERVAL).unref?.();
+
+  // Warm up an LS instance for each account's configured proxy so the first
+  // chat request doesn't pay the spawn cost.
+  const { ensureLs } = await import('./langserver.js');
+  const uniqueProxies = new Map();
+  for (const a of accounts) {
+    const p = getEffectiveProxy(a.id);
+    const k = p ? `${p.host}:${p.port}` : 'default';
+    if (!uniqueProxies.has(k)) uniqueProxies.set(k, p || null);
+  }
+  for (const p of uniqueProxies.values()) {
+    try { await ensureLs(p); }
+    catch (e) { log.warn(`LS warmup failed: ${e.message}`); }
+  }
 
   const counts = getAccountCount();
   if (counts.total > 0) {

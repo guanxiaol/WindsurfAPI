@@ -85,7 +85,7 @@ function encodeTimestamp() {
 
 // ─── Metadata ──────────────────────────────────────────────
 
-function buildMetadata(apiKey, version = '1.9600.41') {
+export function buildMetadata(apiKey, version = '1.9600.41', sessionId = null) {
   return Buffer.concat([
     writeStringField(1, 'windsurf'),          // ide_name
     writeStringField(2, version),             // extension_version
@@ -95,7 +95,7 @@ function buildMetadata(apiKey, version = '1.9600.41') {
     writeStringField(7, version),             // ide_version
     writeStringField(8, 'x86_64'),            // hardware
     writeVarintField(9, Date.now()),           // request_id
-    writeStringField(10, randomUUID()),        // session_id
+    writeStringField(10, sessionId || randomUUID()), // session_id
     writeStringField(12, 'windsurf'),          // extension_name
   ]);
 }
@@ -214,36 +214,26 @@ export function parseRawResponse(buf) {
  * Field 1: metadata
  * Field 2: ExtensionPanelTab enum (4 = CORTEX)
  */
-export function buildInitializePanelStateRequest(apiKey) {
+// Field numbers verified by extracting the FileDescriptorProto from
+// language_server_linux_x64. Historical layouts are NOT the same — field 2 of
+// InitializeCascadePanelState is reserved; workspace_trusted moved to field 3.
+export function buildInitializePanelStateRequest(apiKey, sessionId, trusted = true) {
   return Buffer.concat([
-    writeMessageField(1, buildMetadata(apiKey)),
-    writeVarintField(2, 4), // EXTENSION_PANEL_TAB_CORTEX
+    writeMessageField(1, buildMetadata(apiKey, undefined, sessionId)),
+    writeBoolField(3, trusted), // workspace_trusted
   ]);
 }
 
-/**
- * Build AddTrackedWorkspaceRequest.
- * Field 1: workspace_path (string)
- * Field 2: metadata
- */
-export function buildAddTrackedWorkspaceRequest(apiKey, workspacePath) {
-  return Buffer.concat([
-    writeStringField(1, workspacePath),
-    writeMessageField(2, buildMetadata(apiKey)),
-  ]);
+// AddTrackedWorkspaceRequest has a single field: workspace (string, filesystem path).
+export function buildAddTrackedWorkspaceRequest(apiKey, workspacePath, sessionId) {
+  return writeStringField(1, workspacePath);
 }
 
-/**
- * Build UpdateWorkspaceTrustRequest.
- * Field 1: metadata
- * Field 2: workspace_path (string)
- * Field 3: is_trusted (bool)
- */
-export function buildUpdateWorkspaceTrustRequest(apiKey, workspacePath, trusted = true) {
+// UpdateWorkspaceTrustRequest { metadata=1, workspace_trusted=2 }. No path — trust is global.
+export function buildUpdateWorkspaceTrustRequest(apiKey, _ignored, trusted = true, sessionId) {
   return Buffer.concat([
-    writeMessageField(1, buildMetadata(apiKey)),
-    writeStringField(2, workspacePath),
-    writeBoolField(3, trusted),
+    writeMessageField(1, buildMetadata(apiKey, undefined, sessionId)),
+    writeBoolField(2, trusted),
   ]);
 }
 
@@ -253,8 +243,8 @@ export function buildUpdateWorkspaceTrustRequest(apiKey, workspacePath, trusted 
  * Build StartCascadeRequest.
  * Field 1: metadata
  */
-export function buildStartCascadeRequest(apiKey) {
-  return writeMessageField(1, buildMetadata(apiKey));
+export function buildStartCascadeRequest(apiKey, sessionId) {
+  return writeMessageField(1, buildMetadata(apiKey, undefined, sessionId));
 }
 
 /**
@@ -265,7 +255,7 @@ export function buildStartCascadeRequest(apiKey) {
  * Field 3: metadata
  * Field 5: cascade_config
  */
-export function buildSendCascadeMessageRequest(apiKey, cascadeId, text, modelEnum, modelUid) {
+export function buildSendCascadeMessageRequest(apiKey, cascadeId, text, modelEnum, modelUid, sessionId) {
   const parts = [];
 
   // Field 1: cascade_id
@@ -275,7 +265,7 @@ export function buildSendCascadeMessageRequest(apiKey, cascadeId, text, modelEnu
   parts.push(writeMessageField(2, writeStringField(1, text)));
 
   // Field 3: metadata
-  parts.push(writeMessageField(3, buildMetadata(apiKey)));
+  parts.push(writeMessageField(3, buildMetadata(apiKey, undefined, sessionId)));
 
   // Field 5: cascade_config
   const cascadeConfig = buildCascadeConfig(modelEnum, modelUid);
@@ -375,6 +365,8 @@ export function parseTrajectorySteps(buf) {
     const sf = parseFields(step.value);
     const typeField = getField(sf, 1, 0);
     const statusField = getField(sf, 4, 0);
+    // CortexTrajectoryStep.planner_response = field 20
+    // CortexStepPlannerResponse.response = 1, thinking = 3, modified_response = 8
     const plannerField = getField(sf, 20, 2);
 
     const entry = {
@@ -382,15 +374,46 @@ export function parseTrajectorySteps(buf) {
       status: statusField ? statusField.value : 0,
       text: '',
       thinking: '',
+      errorText: '',
     };
 
     if (plannerField) {
       const pf = parseFields(plannerField.value);
       const textField = getField(pf, 1, 2);
+      const modifiedField = getField(pf, 8, 2);
       const thinkField = getField(pf, 3, 2);
       if (textField) entry.text = textField.value.toString('utf8');
+      if (modifiedField && !entry.text) entry.text = modifiedField.value.toString('utf8');
       if (thinkField) entry.thinking = thinkField.value.toString('utf8');
     }
+
+    // Walk CortexErrorDetails. user_error_message, short_error and full_error
+    // usually contain the same text at increasing verbosity — pick one.
+    const readErrorDetails = (buf) => {
+      const ed = parseFields(buf);
+      for (const fnum of [1, 2, 3]) {
+        const f = getField(ed, fnum, 2);
+        if (f) {
+          const s = f.value.toString('utf8').trim();
+          if (s) return s.split('\n')[0].slice(0, 300);
+        }
+      }
+      return '';
+    };
+
+    // Error info lives at either CortexTrajectoryStep.error_message (field 24
+    // for ERROR_MESSAGE steps) or CortexTrajectoryStep.error (field 31 for any
+    // step). They both wrap CortexErrorDetails. Prefer the step-specific one.
+    const errMsgField = getField(sf, 24, 2);
+    if (errMsgField) {
+      const inner = getField(parseFields(errMsgField.value), 3, 2);
+      if (inner) entry.errorText = readErrorDetails(inner.value);
+    }
+    if (!entry.errorText) {
+      const errField = getField(sf, 31, 2);
+      if (errField) entry.errorText = readErrorDetails(errField.value);
+    }
+
 
     results.push(entry);
   }

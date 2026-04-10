@@ -3,16 +3,20 @@
  * All routes are under /dashboard/api/*.
  */
 
-import { config } from '../config.js';
+import { config, log } from '../config.js';
 import {
   getAccountList, getAccountCount, addAccountByKey, addAccountByToken,
   removeAccount, setAccountStatus, resetAccountErrors, updateAccountLabel,
-  isAuthenticated,
+  isAuthenticated, probeAccount, ensureLsForAccount,
 } from '../auth.js';
+import { restartLsForProxy } from '../langserver.js';
 import { getLsStatus, stopLanguageServer, startLanguageServer, isLanguageServerRunning } from '../langserver.js';
 import { getStats, resetStats, recordRequest } from './stats.js';
 import { getLogs, subscribeToLogs, unsubscribeFromLogs } from './logger.js';
-import { getProxyConfig, setGlobalProxy, setAccountProxy, removeProxy } from './proxy-config.js';
+import { getProxyConfig, setGlobalProxy, setAccountProxy, removeProxy, getEffectiveProxy } from './proxy-config.js';
+import { MODELS } from '../models.js';
+import { windsurfLogin } from './windsurf-login.js';
+import { getModelAccessConfig, setModelAccessMode, setModelAccessList, addModelToList, removeModelFromList } from './model-access.js';
 
 function json(res, status, body) {
   const data = JSON.stringify(body);
@@ -86,6 +90,8 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       } else {
         return json(res, 400, { error: 'Provide api_key or token' });
       }
+      // Fire-and-forget probe so the UI gets tier info shortly after add
+      probeAccount(account.id).catch(e => log.warn(`Auto-probe failed: ${e.message}`));
       return json(res, 200, {
         success: true,
         account: { id: account.id, email: account.email, method: account.method, status: account.status },
@@ -93,6 +99,33 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       });
     } catch (err) {
       return json(res, 400, { error: err.message });
+    }
+  }
+
+  // POST /accounts/probe-all — probe every active account
+  if (subpath === '/accounts/probe-all' && method === 'POST') {
+    const list = getAccountList().filter(a => a.status === 'active');
+    const results = [];
+    for (const a of list) {
+      try {
+        const r = await probeAccount(a.id);
+        results.push({ id: a.id, email: a.email, tier: r?.tier || 'unknown' });
+      } catch (err) {
+        results.push({ id: a.id, email: a.email, error: err.message });
+      }
+    }
+    return json(res, 200, { success: true, results });
+  }
+
+  // POST /accounts/:id/probe — manually trigger capability probe
+  const accountProbe = subpath.match(/^\/accounts\/([^/]+)\/probe$/);
+  if (accountProbe && method === 'POST') {
+    try {
+      const result = await probeAccount(accountProbe[1]);
+      if (!result) return json(res, 404, { error: 'Account not found' });
+      return json(res, 200, { success: true, ...result });
+    } catch (err) {
+      return json(res, 500, { error: err.message });
     }
   }
 
@@ -183,6 +216,8 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
   const proxyAccount = subpath.match(/^\/proxy\/accounts\/([^/]+)$/);
   if (proxyAccount && method === 'PUT') {
     setAccountProxy(proxyAccount[1], body);
+    // Spawn (or adopt) the LS instance for this proxy so chat routes immediately
+    ensureLsForAccount(proxyAccount[1]).catch(e => log.warn(`LS ensure failed: ${e.message}`));
     return json(res, 200, { success: true });
   }
   if (proxyAccount && method === 'DELETE') {
@@ -219,6 +254,73 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       });
     }, 2000);
     return json(res, 200, { success: true, message: 'Restarting language server...' });
+  }
+
+  // ─── Models list ──────────────────────────────────────
+  if (subpath === '/models' && method === 'GET') {
+    const models = Object.entries(MODELS).map(([id, info]) => ({
+      id, name: info.name, provider: info.provider,
+    }));
+    return json(res, 200, { models });
+  }
+
+  // ─── Model Access Control ──────────────────────────────
+  if (subpath === '/model-access' && method === 'GET') {
+    return json(res, 200, getModelAccessConfig());
+  }
+
+  if (subpath === '/model-access' && method === 'PUT') {
+    if (body.mode) setModelAccessMode(body.mode);
+    if (body.list) setModelAccessList(body.list);
+    return json(res, 200, { success: true, config: getModelAccessConfig() });
+  }
+
+  if (subpath === '/model-access/add' && method === 'POST') {
+    if (!body.model) return json(res, 400, { error: 'model is required' });
+    addModelToList(body.model);
+    return json(res, 200, { success: true, config: getModelAccessConfig() });
+  }
+
+  if (subpath === '/model-access/remove' && method === 'POST') {
+    if (!body.model) return json(res, 400, { error: 'model is required' });
+    removeModelFromList(body.model);
+    return json(res, 200, { success: true, config: getModelAccessConfig() });
+  }
+
+  // ─── Windsurf Login ────────────────────────────────────
+  if (subpath === '/windsurf-login' && method === 'POST') {
+    try {
+      const { email, password, proxy: loginProxy, autoAdd } = body;
+      if (!email || !password) return json(res, 400, { error: 'email 和 password 為必填' });
+
+      // Use provided proxy, or global proxy
+      const proxy = loginProxy?.host ? loginProxy : getProxyConfig().global;
+
+      const result = await windsurfLogin(email, password, proxy);
+
+      // Auto-add to account pool if requested
+      let account = null;
+      if (autoAdd !== false) {
+        account = addAccountByKey(result.apiKey, result.name || email);
+        // Persist the per-account proxy we used for login so chat requests
+        // also egress through the same IP, then warm up a matching LS.
+        if (loginProxy?.host) setAccountProxy(account.id, loginProxy);
+        ensureLsForAccount(account.id)
+          .then(() => probeAccount(account.id))
+          .catch(e => log.warn(`Auto-probe failed: ${e.message}`));
+      }
+
+      return json(res, 200, {
+        success: true,
+        apiKey: result.apiKey,
+        name: result.name,
+        email: result.email,
+        apiServerUrl: result.apiServerUrl,
+        account: account ? { id: account.id, email: account.email, status: account.status } : null,
+      });
+    } catch (err) {
+      return json(res, 400, { error: err.message });
+    }
   }
 
   json(res, 404, { error: `Dashboard API: ${method} ${subpath} not found` });

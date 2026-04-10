@@ -190,7 +190,11 @@ async function route(req, res) {
 }
 
 export function startServer() {
+  const activeRequests = new Set();
+
   const server = http.createServer(async (req, res) => {
+    activeRequests.add(res);
+    res.on('close', () => activeRequests.delete(res));
     try {
       await route(req, res);
     } catch (err) {
@@ -198,6 +202,9 @@ export function startServer() {
       if (!res.headersSent) json(res, 500, { error: { message: 'Internal error', type: 'server_error' } });
     }
   });
+
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
 
   let retryCount = 0;
   const maxRetries = 10;
@@ -215,6 +222,8 @@ export function startServer() {
       log.error('Server error:', err);
     }
   });
+
+  server.getActiveRequests = () => activeRequests.size;
 
   server.listen({ port: config.port, host: '0.0.0.0' }, () => {
     log.info(`Server on http://0.0.0.0:${config.port}`);

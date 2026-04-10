@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,110 +16,127 @@
 body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
 a { color: var(--accent2); text-decoration: none; }
 button { font-family: var(--font); cursor: pointer; border: none; border-radius: var(--radius); padding: 8px 16px; font-size: 13px; transition: all .15s; }
-input, select { font-family: var(--font); background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; outline: none; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+input, select { font-family: var(--font); background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; font-size: 13px; outline: none; transition: border-color .15s; }
 input:focus, select:focus { border-color: var(--accent); }
+code { font-family: var(--mono); font-size: 12px; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
 
-/* Layout */
-.sidebar { width: 220px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 10; }
-.sidebar .logo { padding: 20px; font-size: 16px; font-weight: 700; border-bottom: 1px solid var(--border); }
+.sidebar { width: 200px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 10; }
+.sidebar .logo { padding: 16px; font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
 .sidebar .logo span { color: var(--accent); }
-.sidebar nav { flex: 1; padding: 12px 0; }
-.sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--muted); font-size: 14px; transition: all .15s; border-left: 3px solid transparent; }
+.sidebar nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+.sidebar nav a { display: flex; align-items: center; gap: 8px; padding: 9px 16px; color: var(--muted); font-size: 13px; transition: all .15s; border-left: 3px solid transparent; white-space: nowrap; }
 .sidebar nav a:hover { color: var(--text); background: var(--surface2); }
 .sidebar nav a.active { color: var(--accent2); border-left-color: var(--accent); background: rgba(99,102,241,.08); }
-.sidebar .ver { padding: 16px 20px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
+.sidebar nav a .icon { width: 18px; text-align: center; font-size: 14px; }
+.sidebar .ver { padding: 12px 16px; font-size: 11px; color: var(--muted); border-top: 1px solid var(--border); }
 
-.main { margin-left: 220px; flex: 1; padding: 24px; min-height: 100vh; }
+.main { margin-left: 200px; flex: 1; padding: 20px; min-height: 100vh; max-width: 1200px; }
 .panel { display: none; }
 .panel.active { display: block; }
-.panel h2 { font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+.panel h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 
-/* Cards */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
-.card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
-.card .value { font-size: 28px; font-weight: 700; }
-.card .sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.card .value { font-size: 24px; font-weight: 700; }
+.card .sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 .card.green .value { color: var(--success); }
 .card.blue .value { color: var(--info); }
 .card.yellow .value { color: var(--warn); }
 .card.red .value { color: var(--error); }
 
-/* Tables */
-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; }
-th { text-align: left; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
-td { padding: 10px 16px; font-size: 13px; border-bottom: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; font-size: 13px; }
+th { text-align: left; padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); }
+td { padding: 8px 14px; border-bottom: 1px solid var(--border); }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(255,255,255,.02); }
 
-/* Status badges */
-.badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
-.badge.active { background: rgba(34,197,94,.15); color: var(--success); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.badge.active, .badge.running { background: rgba(34,197,94,.15); color: var(--success); }
 .badge.error { background: rgba(239,68,68,.15); color: var(--error); }
 .badge.disabled { background: rgba(107,113,137,.15); color: var(--muted); }
-.badge.running { background: rgba(34,197,94,.15); color: var(--success); }
 .badge.stopped { background: rgba(239,68,68,.15); color: var(--error); }
 
-/* Buttons */
 .btn { background: var(--accent); color: white; font-weight: 500; }
-.btn:hover { background: var(--accent2); }
+.btn:hover:not(:disabled) { background: var(--accent2); transform: translateY(-1px); }
 .btn-sm { padding: 4px 10px; font-size: 12px; }
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-.btn-outline:hover { border-color: var(--accent); color: var(--accent2); }
+.btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent2); }
 .btn-danger { background: var(--error); color: white; }
-.btn-danger:hover { background: #dc2626; }
+.btn-danger:hover:not(:disabled) { background: #dc2626; }
 .btn-success { background: var(--success); color: white; }
-.btn-success:hover { background: #16a34a; }
+.btn-success:hover:not(:disabled) { background: #16a34a; }
 
-/* Forms */
-.form-row { display: flex; gap: 10px; margin-bottom: 16px; align-items: flex-end; }
-.form-group { display: flex; flex-direction: column; gap: 4px; }
-.form-group label { font-size: 12px; color: var(--muted); }
-.form-group input, .form-group select { min-width: 180px; }
-.form-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
-.form-section h3 { font-size: 14px; margin-bottom: 16px; color: var(--text); }
+.form-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: flex-end; flex-wrap: wrap; }
+.form-group { display: flex; flex-direction: column; gap: 3px; }
+.form-group label { font-size: 11px; color: var(--muted); }
+.form-group input, .form-group select { min-width: 140px; }
+.form-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.form-section h3 { font-size: 13px; margin-bottom: 12px; color: var(--text); font-weight: 600; }
+.form-section p.hint { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
 
-/* Logs */
-.log-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); height: 500px; overflow-y: auto; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
-.log-entry { padding: 2px 16px; border-bottom: 1px solid rgba(255,255,255,.02); }
+.log-container { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); height: 450px; overflow-y: auto; font-family: var(--mono); font-size: 12px; line-height: 1.5; }
+.log-entry { padding: 2px 14px; border-bottom: 1px solid rgba(255,255,255,.02); }
 .log-entry:hover { background: rgba(255,255,255,.03); }
 .log-entry .ts { color: var(--muted); margin-right: 8px; }
 .log-entry.debug { color: var(--muted); }
 .log-entry.info .lvl { color: var(--info); }
 .log-entry.warn .lvl { color: var(--warn); }
 .log-entry.error .lvl { color: var(--error); }
-.log-controls { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+.log-controls { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
 .log-controls label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
 
-/* Chart */
-.chart { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 20px; }
-.chart h3 { font-size: 14px; margin-bottom: 16px; }
-.bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; }
+.chart { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+.chart h3 { font-size: 13px; margin-bottom: 12px; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 100px; }
 .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-.bar { width: 100%; min-width: 8px; background: var(--accent); border-radius: 2px 2px 0 0; transition: height .3s; position: relative; }
+.bar { width: 100%; min-width: 6px; background: var(--accent); border-radius: 2px 2px 0 0; transition: height .3s; }
 .bar.has-errors { background: linear-gradient(to top, var(--error) 0%, var(--accent) 100%); }
-.bar-label { font-size: 9px; color: var(--muted); margin-top: 4px; writing-mode: vertical-lr; transform: rotate(180deg); max-height: 40px; overflow: hidden; }
+.bar-label { font-size: 8px; color: var(--muted); margin-top: 3px; }
 
-/* Toast */
-.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius); font-size: 13px; z-index: 999; animation: fadeIn .2s; }
+.toast { position: fixed; bottom: 20px; right: 20px; padding: 10px 18px; border-radius: var(--radius); font-size: 13px; z-index: 999; animation: fadeIn .2s; box-shadow: 0 4px 12px rgba(0,0,0,.3); }
 .toast.success { background: var(--success); color: white; }
 .toast.error { background: var(--error); color: white; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Login overlay */
-.login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; }
-.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; width: 360px; text-align: center; }
-.login-box h3 { margin-bottom: 20px; }
-.login-box input { width: 100%; margin-bottom: 16px; }
+.login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 100; backdrop-filter: blur(4px); }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; width: 340px; text-align: center; }
+.login-box h3 { margin-bottom: 16px; }
+.login-box input { width: 100%; margin-bottom: 12px; }
 .login-box button { width: 100%; }
+
+/* Model chips */
+.model-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.model-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 14px; font-size: 11px; border: 1px solid var(--border); background: var(--surface2); cursor: pointer; transition: all .15s; }
+.model-chip:hover { border-color: var(--accent); }
+.model-chip.selected { background: rgba(99,102,241,.2); border-color: var(--accent); color: var(--accent2); }
+.model-chip .remove { margin-left: 2px; color: var(--error); font-weight: bold; cursor: pointer; }
+.model-chip .provider { font-size: 9px; color: var(--muted); text-transform: uppercase; }
+
+/* Radio group */
+.radio-group { display: flex; gap: 0; margin-bottom: 12px; }
+.radio-group label { padding: 6px 14px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); color: var(--muted); transition: all .15s; }
+.radio-group label:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+.radio-group label:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+.radio-group label:not(:first-child) { border-left: none; }
+.radio-group input { display: none; }
+.radio-group input:checked + span { color: var(--accent2); }
+.radio-group label:has(input:checked) { background: rgba(99,102,241,.15); border-color: var(--accent); color: var(--accent2); }
+
+/* Spinner */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .sidebar { width: 60px; }
+  .sidebar { width: 52px; }
   .sidebar .logo span, .sidebar nav a span, .sidebar .ver { display: none; }
-  .sidebar nav a { justify-content: center; padding: 12px; }
-  .main { margin-left: 60px; padding: 16px; }
+  .sidebar nav a { justify-content: center; padding: 10px; }
+  .main { margin-left: 52px; padding: 12px; }
   .cards { grid-template-columns: repeat(2, 1fr); }
+  .form-row { flex-direction: column; }
+  .form-group input, .form-group select { min-width: 100%; }
 }
 </style>
 </head>
@@ -128,20 +145,22 @@ tr:hover td { background: rgba(255,255,255,.02); }
 <div class="sidebar">
   <div class="logo"><span>Windsurf</span> API</div>
   <nav>
-    <a href="#overview" class="active" data-panel="overview">&#9635; <span>Overview</span></a>
-    <a href="#accounts" data-panel="accounts">&#9783; <span>Accounts</span></a>
-    <a href="#proxy" data-panel="proxy">&#8644; <span>Proxy</span></a>
-    <a href="#logs" data-panel="logs">&#9776; <span>Logs</span></a>
-    <a href="#stats" data-panel="stats">&#9670; <span>Stats</span></a>
-    <a href="#bans" data-panel="bans">&#9888; <span>Ban Detection</span></a>
+    <a href="#overview" class="active" data-panel="overview"><span class="icon">&#9635;</span><span>總覽</span></a>
+    <a href="#windsurf-login" data-panel="windsurf-login"><span class="icon">&#9993;</span><span>登入取號</span></a>
+    <a href="#accounts" data-panel="accounts"><span class="icon">&#9783;</span><span>帳號管理</span></a>
+    <a href="#models" data-panel="models"><span class="icon">&#9881;</span><span>模型控制</span></a>
+    <a href="#proxy" data-panel="proxy"><span class="icon">&#8644;</span><span>Proxy</span></a>
+    <a href="#logs" data-panel="logs"><span class="icon">&#9776;</span><span>日誌</span></a>
+    <a href="#stats" data-panel="stats"><span class="icon">&#9670;</span><span>統計</span></a>
+    <a href="#bans" data-panel="bans"><span class="icon">&#9888;</span><span>封禁偵測</span></a>
   </nav>
-  <div class="ver">v1.0.0</div>
+  <div class="ver">v1.1.0</div>
 </div>
 
 <div class="main">
   <!-- Overview -->
   <section class="panel active" id="p-overview">
-    <h2>Overview</h2>
+    <h2>總覽</h2>
     <div class="cards" id="overview-cards"></div>
     <div class="form-section">
       <h3>Language Server</h3>
@@ -149,53 +168,143 @@ tr:hover td { background: rgba(255,255,255,.02); }
     </div>
   </section>
 
+  <!-- Windsurf Login -->
+  <section class="panel" id="p-windsurf-login">
+    <h2>Windsurf 帳號登入</h2>
+    <div class="form-section">
+      <h3>直接登入取得 API Key</h3>
+      <p class="hint">輸入 Windsurf 帳號密碼，自動取得 API Key 並加入帳號池。每次登入使用隨機瀏覽器指紋。</p>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>Email</label>
+          <input id="wl-email" placeholder="your-email@example.com" style="width:100%" autocomplete="off">
+        </div>
+        <div class="form-group" style="flex:1">
+          <label>密碼</label>
+          <input id="wl-password" type="password" placeholder="密碼" style="width:100%" autocomplete="off" onkeydown="if(event.key==='Enter')App.windsurfLogin()">
+        </div>
+        <button class="btn" onclick="App.windsurfLogin()" id="wl-btn">登入</button>
+      </div>
+    </div>
+    <div class="form-section" id="wl-proxy-section">
+      <h3>登入 Proxy（選填）</h3>
+      <p class="hint">為本次登入指定 Proxy。留空則使用全域 Proxy 設定。</p>
+      <div class="form-row">
+        <div class="form-group"><label>類型</label><select id="wl-proxy-type"><option value="http">HTTP</option><option value="https">HTTPS</option><option value="socks5">SOCKS5</option></select></div>
+        <div class="form-group"><label>主機</label><input id="wl-proxy-host" placeholder="留空=全域"></div>
+        <div class="form-group"><label>端口</label><input id="wl-proxy-port" placeholder="8080" type="number" style="width:70px"></div>
+        <div class="form-group"><label>帳號</label><input id="wl-proxy-user" placeholder="選填"></div>
+        <div class="form-group"><label>密碼</label><input id="wl-proxy-pass" type="password" placeholder="選填"></div>
+      </div>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:4px">
+        <input type="checkbox" id="wl-auto-add" checked> 登入成功自動加入帳號池
+      </label>
+    </div>
+    <div id="wl-result" style="display:none" class="form-section"></div>
+    <div class="form-section">
+      <h3>登入歷史</h3>
+      <table id="wl-history-table">
+        <thead><tr><th>時間</th><th>Email</th><th>狀態</th><th>Proxy</th><th>操作</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
   <!-- Accounts -->
   <section class="panel" id="p-accounts">
-    <h2>Accounts</h2>
+    <h2>帳號管理</h2>
     <div class="form-section">
-      <h3>Add Account</h3>
+      <h3>新增帳號</h3>
       <div class="form-row">
         <div class="form-group">
-          <label>Type</label>
+          <label>類型</label>
           <select id="acc-type"><option value="api_key">API Key</option><option value="token">Auth Token</option></select>
         </div>
         <div class="form-group" style="flex:1">
           <label>Key / Token</label>
-          <input id="acc-key" placeholder="Paste API key or auth token..." style="width:100%">
+          <input id="acc-key" placeholder="貼上 API Key 或 Auth Token..." style="width:100%">
         </div>
         <div class="form-group">
-          <label>Label</label>
-          <input id="acc-label" placeholder="Optional label">
+          <label>標籤</label>
+          <input id="acc-label" placeholder="選填" style="min-width:100px">
         </div>
-        <button class="btn" onclick="App.addAccount()">Add</button>
+        <button class="btn" onclick="App.addAccount()">新增</button>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn btn-outline btn-sm" onclick="App.probeAll()">全部探測</button>
+        <span class="hint" style="margin-left:12px">依序對每個 active 帳號執行 canary 測試，更新層級與可用模型。</span>
       </div>
     </div>
+    <div id="ls-pool-card" style="margin-bottom:16px"></div>
     <table id="accounts-table">
-      <thead><tr><th>ID</th><th>Label</th><th>Method</th><th>Status</th><th>Errors</th><th>Last Used</th><th>Key</th><th>Actions</th></tr></thead>
+      <thead><tr><th>ID</th><th>標籤</th><th>層級</th><th>可用模型</th><th>狀態</th><th>錯誤</th><th>最後使用</th><th>Key</th><th>操作</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
 
+  <!-- Model Access Control -->
+  <section class="panel" id="p-models">
+    <h2>模型存取控制</h2>
+    <div class="form-section">
+      <h3>存取模式</h3>
+      <p class="hint">選擇模型存取策略。「全部允許」不做限制；「白名單」只允許列出的模型；「黑名單」封鎖列出的模型。</p>
+      <div class="radio-group" id="model-mode-group">
+        <label><input type="radio" name="model-mode" value="all" onchange="App.setModelMode(this.value)"><span>全部允許</span></label>
+        <label><input type="radio" name="model-mode" value="allowlist" onchange="App.setModelMode(this.value)"><span>白名單</span></label>
+        <label><input type="radio" name="model-mode" value="blocklist" onchange="App.setModelMode(this.value)"><span>黑名單</span></label>
+      </div>
+    </div>
+    <div class="form-section" id="model-list-section" style="display:none">
+      <h3 id="model-list-title">模型清單</h3>
+      <p class="hint" id="model-list-hint"></p>
+      <div class="form-row">
+        <div class="form-group" style="flex:1">
+          <label>搜尋模型</label>
+          <input id="model-search" placeholder="輸入模型名稱篩選..." oninput="App.filterModels()" style="width:100%">
+        </div>
+        <div class="form-group">
+          <label>供應商</label>
+          <select id="model-provider-filter" onchange="App.filterModels()">
+            <option value="">全部</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="openai">OpenAI</option>
+            <option value="google">Google</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="xai">xAI</option>
+            <option value="alibaba">Alibaba</option>
+            <option value="moonshot">Moonshot</option>
+            <option value="windsurf">Windsurf</option>
+          </select>
+        </div>
+      </div>
+      <div id="model-list-current" style="margin-bottom:12px"></div>
+      <div id="model-chips-container"></div>
+    </div>
+  </section>
+
   <!-- Proxy -->
   <section class="panel" id="p-proxy">
-    <h2>Proxy Configuration</h2>
+    <h2>Proxy 設定</h2>
     <div class="form-section">
-      <h3>Global Proxy</h3>
+      <h3>全域 Proxy</h3>
       <div class="form-row">
-        <div class="form-group"><label>Type</label><select id="proxy-type"><option value="http">HTTP</option><option value="https">HTTPS</option><option value="socks5">SOCKS5</option></select></div>
-        <div class="form-group"><label>Host</label><input id="proxy-host" placeholder="proxy.example.com"></div>
-        <div class="form-group"><label>Port</label><input id="proxy-port" placeholder="8080" type="number" style="width:80px"></div>
-        <div class="form-group"><label>Username</label><input id="proxy-user" placeholder="Optional"></div>
-        <div class="form-group"><label>Password</label><input id="proxy-pass" type="password" placeholder="Optional"></div>
-        <button class="btn" onclick="App.saveGlobalProxy()">Save</button>
-        <button class="btn-outline btn" onclick="App.clearGlobalProxy()">Clear</button>
+        <div class="form-group"><label>類型</label><select id="proxy-type"><option value="http">HTTP</option><option value="https">HTTPS</option><option value="socks5">SOCKS5</option></select></div>
+        <div class="form-group"><label>主機</label><input id="proxy-host" placeholder="proxy.example.com"></div>
+        <div class="form-group"><label>端口</label><input id="proxy-port" placeholder="8080" type="number" style="width:80px"></div>
       </div>
-      <div id="proxy-current" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+      <div class="form-row">
+        <div class="form-group"><label>帳號（認證）</label><input id="proxy-user" placeholder="Proxy 帳號"></div>
+        <div class="form-group"><label>密碼（認證）</label><div style="display:flex;gap:4px"><input id="proxy-pass" type="text" placeholder="Proxy 密碼" style="min-width:160px"><button class="btn-outline btn btn-sm" onclick="const el=document.getElementById('proxy-pass');el.type=el.type==='password'?'text':'password'" style="padding:4px 8px;font-size:11px">顯/隱</button></div></div>
+        <button class="btn" onclick="App.saveGlobalProxy()">儲存</button>
+        <button class="btn-outline btn" onclick="App.clearGlobalProxy()">清除</button>
+      </div>
+      <div id="proxy-current" style="margin-top:8px;font-size:12px;color:var(--muted)"></div>
     </div>
     <div class="form-section">
-      <h3>Per-Account Proxy</h3>
+      <h3>帳號獨立 Proxy</h3>
+      <p class="hint">每個帳號可設定獨立的 Proxy。未設定則使用全域 Proxy。</p>
       <table id="proxy-accounts-table">
-        <thead><tr><th>Account</th><th>Proxy</th><th>Actions</th></tr></thead>
+        <thead><tr><th>帳號</th><th>Proxy</th><th>操作</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -203,74 +312,75 @@ tr:hover td { background: rgba(255,255,255,.02); }
 
   <!-- Logs -->
   <section class="panel" id="p-logs">
-    <h2>Log Viewer</h2>
+    <h2>日誌</h2>
     <div class="log-controls">
       <div class="form-group">
         <select id="log-level" onchange="App.filterLogs()">
-          <option value="">All levels</option><option value="debug">Debug</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option>
+          <option value="">全部</option><option value="debug">Debug</option><option value="info">Info</option><option value="warn">Warn</option><option value="error">Error</option>
         </select>
       </div>
-      <input id="log-search" placeholder="Search logs..." oninput="App.filterLogs()" style="flex:1">
-      <label><input type="checkbox" id="log-autoscroll" checked> Auto-scroll</label>
-      <button class="btn-outline btn btn-sm" onclick="App.clearLogView()">Clear View</button>
+      <input id="log-search" placeholder="搜尋日誌..." oninput="App.debouncedFilterLogs()" style="flex:1">
+      <label><input type="checkbox" id="log-autoscroll" checked> 自動捲動</label>
+      <button class="btn-outline btn btn-sm" onclick="App.clearLogView()">清除檢視</button>
     </div>
     <div class="log-container" id="log-container"></div>
   </section>
 
   <!-- Stats -->
   <section class="panel" id="p-stats">
-    <h2>Request Statistics</h2>
+    <h2>統計</h2>
     <div class="cards" id="stats-cards"></div>
     <div class="chart">
-      <h3>Requests (last 24h)</h3>
+      <h3>請求量（24小時）</h3>
       <div class="bars" id="stats-chart"></div>
     </div>
     <table id="model-stats-table">
-      <thead><tr><th>Model</th><th>Requests</th><th>Success</th><th>Errors</th><th>Success Rate</th><th>Avg Time</th></tr></thead>
+      <thead><tr><th>模型</th><th>請求</th><th>成功</th><th>錯誤</th><th>成功率</th><th>平均耗時</th></tr></thead>
       <tbody></tbody>
     </table>
-    <div style="margin-top:16px"><button class="btn-danger btn btn-sm" onclick="App.resetStats()">Reset All Stats</button></div>
+    <div style="margin-top:12px"><button class="btn-danger btn btn-sm" onclick="App.resetStats()">重置統計</button></div>
   </section>
 
   <!-- Ban Detection -->
   <section class="panel" id="p-bans">
-    <h2>Ban / Quota Detection</h2>
+    <h2>封禁偵測</h2>
     <div class="cards" id="ban-cards"></div>
     <table id="ban-table">
-      <thead><tr><th>Account</th><th>Status</th><th>Error Count</th><th>Last Used</th><th>Actions</th></tr></thead>
+      <thead><tr><th>帳號</th><th>狀態</th><th>錯誤數</th><th>最後使用</th><th>操作</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
 </div>
 
-<!-- Login overlay (hidden by default) -->
+<!-- Login overlay -->
 <div class="login-overlay" id="login-overlay" style="display:none">
   <div class="login-box">
-    <h3>Dashboard Login</h3>
-    <input type="password" id="login-password" placeholder="Enter dashboard password" onkeydown="if(event.key==='Enter')App.login()">
-    <button class="btn" onclick="App.login()">Login</button>
+    <h3>Dashboard 登入</h3>
+    <input type="password" id="login-password" placeholder="輸入 Dashboard 密碼" onkeydown="if(event.key==='Enter')App.login()">
+    <button class="btn" onclick="App.login()">登入</button>
   </div>
 </div>
 
 <script>
 const App = {
-  password: sessionStorage.getItem('dp') || '',
+  password: localStorage.getItem('dp') || '',
   sseConn: null,
   logEntries: [],
   pollers: {},
+  allModels: [],
+  modelAccessConfig: { mode: 'all', list: [] },
+  loginHistory: JSON.parse(localStorage.getItem('wl_history') || '[]'),
+  _filterTimer: null,
 
   async init() {
-    // Check auth
     const auth = await this.api('GET', '/auth');
     if (auth.required && !auth.valid) {
       document.getElementById('login-overlay').style.display = 'flex';
       return;
     }
-    // Nav
     document.querySelectorAll('.sidebar nav a').forEach(a => {
       a.onclick = (e) => { e.preventDefault(); this.navigate(a.dataset.panel); };
     });
-    // Hash navigation
     const hash = location.hash.slice(1);
     if (hash) this.navigate(hash);
     else this.loadOverview();
@@ -278,7 +388,7 @@ const App = {
 
   login() {
     this.password = document.getElementById('login-password').value;
-    sessionStorage.setItem('dp', this.password);
+    localStorage.setItem('dp', this.password);
     document.getElementById('login-overlay').style.display = 'none';
     this.init();
   },
@@ -290,14 +400,17 @@ const App = {
     const nav = document.querySelector(`[data-panel="${panel}"]`);
     if (el) el.classList.add('active');
     if (nav) nav.classList.add('active');
+    location.hash = panel;
 
-    // Stop all pollers & SSE
     Object.values(this.pollers).forEach(clearInterval);
     this.pollers = {};
     if (this.sseConn) { this.sseConn.close(); this.sseConn = null; }
 
-    // Load panel
-    const loaders = { overview: 'loadOverview', accounts: 'loadAccounts', proxy: 'loadProxy', logs: 'loadLogs', stats: 'loadStats', bans: 'loadBans' };
+    const loaders = {
+      overview: 'loadOverview', 'windsurf-login': 'loadWindsurfLogin',
+      accounts: 'loadAccounts', models: 'loadModels', proxy: 'loadProxy',
+      logs: 'loadLogs', stats: 'loadStats', bans: 'loadBans',
+    };
     if (loaders[panel]) this[loaders[panel]]();
   },
 
@@ -329,74 +442,301 @@ const App = {
     const d = await this.api('GET', '/overview');
     const uptime = d.uptime ? this.fmtDuration(d.uptime) : '-';
     document.getElementById('overview-cards').innerHTML = `
-      <div class="card green"><div class="label">Active Accounts</div><div class="value">${d.accounts?.active || 0}</div><div class="sub">${d.accounts?.total || 0} total, ${d.accounts?.error || 0} errored</div></div>
-      <div class="card blue"><div class="label">Total Requests</div><div class="value">${d.totalRequests || 0}</div><div class="sub">${d.successRate || 0}% success rate</div></div>
-      <div class="card"><div class="label">Uptime</div><div class="value" style="font-size:20px">${uptime}</div></div>
-      <div class="card ${d.langServer?.running ? 'green' : 'red'}"><div class="label">Language Server</div><div class="value" style="font-size:16px">${d.langServer?.running ? 'Running' : 'Stopped'}</div><div class="sub">Port ${d.langServer?.port || '-'}</div></div>
+      <div class="card green"><div class="label">活躍帳號</div><div class="value">${d.accounts?.active || 0}</div><div class="sub">${d.accounts?.total || 0} 總計 / ${d.accounts?.error || 0} 異常</div></div>
+      <div class="card blue"><div class="label">總請求數</div><div class="value">${d.totalRequests || 0}</div><div class="sub">${d.successRate || 0}% 成功率</div></div>
+      <div class="card"><div class="label">運行時間</div><div class="value" style="font-size:18px">${uptime}</div></div>
+      <div class="card ${d.langServer?.running ? 'green' : 'red'}"><div class="label">Language Server</div><div class="value" style="font-size:14px">${d.langServer?.running ? 'Running' : 'Stopped'}</div><div class="sub">Port ${d.langServer?.port || '-'}</div></div>
     `;
     document.getElementById('ls-status').innerHTML = `
       <span class="badge ${d.langServer?.running ? 'running' : 'stopped'}">${d.langServer?.running ? 'Running' : 'Stopped'}</span>
       &nbsp; PID: ${d.langServer?.pid || '-'} &nbsp; Port: ${d.langServer?.port || '-'} &nbsp; Restarts: ${d.langServer?.restartCount || 0}
-      <button class="btn-outline btn btn-sm" style="margin-left:16px" onclick="App.restartLs()">Restart LS</button>
+      <button class="btn-outline btn btn-sm" style="margin-left:12px" onclick="App.restartLs()">重啟 LS</button>
     `;
-    this.pollers.overview = setInterval(() => this.loadOverview(), 10000);
+    this.pollers.overview = setInterval(() => this.loadOverview(), 15000);
   },
 
   async restartLs() {
-    if (!confirm('Restart language server? Active requests will fail.')) return;
+    if (!confirm('重啟 Language Server？進行中的請求會失敗。')) return;
     await this.api('POST', '/langserver/restart', { confirm: true });
-    this.toast('Language server restarting...');
+    this.toast('Language Server 重啟中...');
+  },
+
+  // ─── Windsurf Login ──────────────────────────────────
+  loadWindsurfLogin() { this.renderLoginHistory(); },
+
+  async windsurfLogin() {
+    const email = document.getElementById('wl-email').value.trim();
+    const password = document.getElementById('wl-password').value.trim();
+    if (!email || !password) return this.toast('請輸入 Email 和密碼', 'error');
+
+    const proxyHost = document.getElementById('wl-proxy-host').value.trim();
+    const proxy = proxyHost ? {
+      type: document.getElementById('wl-proxy-type').value,
+      host: proxyHost,
+      port: parseInt(document.getElementById('wl-proxy-port').value) || 8080,
+      username: document.getElementById('wl-proxy-user').value,
+      password: document.getElementById('wl-proxy-pass').value,
+    } : null;
+    const autoAdd = document.getElementById('wl-auto-add').checked;
+
+    const btn = document.getElementById('wl-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>登入中...';
+
+    const entry = { time: new Date().toISOString(), email, proxy: proxy ? `${proxy.type}://${proxy.host}:${proxy.port}` : '全域', status: 'pending' };
+
+    try {
+      const r = await this.api('POST', '/windsurf-login', { email, password, proxy, autoAdd });
+      if (r.success) {
+        entry.status = 'success';
+        entry.apiKey = r.apiKey?.slice(0, 16) + '...';
+        const rd = document.getElementById('wl-result');
+        rd.style.display = 'block';
+        rd.innerHTML = `<h3 style="color:var(--success)">&#10003; 登入成功</h3>
+          <table style="background:transparent;margin-top:8px">
+            <tr><td style="color:var(--muted);width:100px">Email</td><td>${this.esc(r.email)}</td></tr>
+            <tr><td style="color:var(--muted)">Name</td><td>${this.esc(r.name || '-')}</td></tr>
+            <tr><td style="color:var(--muted)">API Key</td><td><code style="word-break:break-all;font-size:11px">${this.esc(r.apiKey)}</code></td></tr>
+            ${r.account ? `<tr><td style="color:var(--muted)">帳號 ID</td><td><code>${r.account.id}</code> <span class="badge active">${r.account.status}</span></td></tr>` : ''}
+          </table>`;
+        this.toast('登入成功，帳號已加入');
+      } else {
+        entry.status = 'error: ' + (r.error || 'unknown');
+        const rd = document.getElementById('wl-result');
+        rd.style.display = 'block';
+        rd.innerHTML = `<h3 style="color:var(--error)">&#10007; 登入失敗</h3><p style="margin-top:8px;font-size:13px">${this.esc(r.error || '未知錯誤')}</p>`;
+        this.toast(r.error || '登入失敗', 'error');
+      }
+    } catch (err) {
+      entry.status = 'error: ' + err.message;
+      this.toast(err.message, 'error');
+    }
+
+    this.loginHistory.unshift(entry);
+    if (this.loginHistory.length > 50) this.loginHistory.length = 50;
+    localStorage.setItem('wl_history', JSON.stringify(this.loginHistory));
+    this.renderLoginHistory();
+    btn.disabled = false;
+    btn.textContent = '登入';
+  },
+
+  renderLoginHistory() {
+    const tbody = document.querySelector('#wl-history-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = this.loginHistory.map((h, i) => {
+      const ok = h.status === 'success';
+      return `<tr>
+        <td style="font-size:12px;white-space:nowrap">${new Date(h.time).toLocaleString()}</td>
+        <td>${this.esc(h.email)}</td>
+        <td><span class="badge ${ok ? 'active' : 'error'}">${ok ? '成功' : '失敗'}</span>${!ok ? `<div style="font-size:11px;color:var(--error);margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis">${this.esc((h.status||'').replace('error: ',''))}</div>` : ''}</td>
+        <td style="font-size:12px">${this.esc(h.proxy || '-')}</td>
+        <td><button class="btn-outline btn btn-sm" onclick="App.removeLoginHistory(${i})">刪除</button></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">尚無登入記錄</td></tr>';
+  },
+
+  removeLoginHistory(idx) {
+    this.loginHistory.splice(idx, 1);
+    localStorage.setItem('wl_history', JSON.stringify(this.loginHistory));
+    this.renderLoginHistory();
   },
 
   // ─── Accounts ────────────────────────────────────────
   async loadAccounts() {
-    const d = await this.api('GET', '/accounts');
+    const [d, ov] = await Promise.all([
+      this.api('GET', '/accounts'),
+      this.api('GET', '/overview').catch(() => null),
+    ]);
+    const instances = ov?.langServer?.instances || [];
+    const poolCard = document.getElementById('ls-pool-card');
+    if (poolCard) {
+      if (instances.length > 0) {
+        poolCard.innerHTML = `
+          <div class="form-section">
+            <h3>語言伺服器池 <span class="hint" style="font-weight:normal;margin-left:8px">${instances.length} 個實例</span></h3>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${instances.map(i => `
+                <div style="padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:12px;background:var(--bg2)">
+                  <div style="font-weight:600;color:${i.ready ? 'var(--success)' : 'var(--warn)'}">${i.key === 'default' ? 'default' : i.key.replace(/^px_/, '')}</div>
+                  <div style="color:var(--muted)">port ${i.port} · pid ${i.pid || '-'}</div>
+                  <div style="color:var(--muted)">${i.proxy || '無代理'}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>`;
+      } else {
+        poolCard.innerHTML = '';
+      }
+    }
     const tbody = document.querySelector('#accounts-table tbody');
-    tbody.innerHTML = (d.accounts || []).map(a => `
+    const tierLabel = { pro: 'Pro', free: 'Free', expired: '已過期', unknown: '未知' };
+    const tierColor = { pro: 'var(--success)', free: 'var(--info)', expired: 'var(--error)', unknown: 'var(--muted)' };
+    tbody.innerHTML = (d.accounts || []).map(a => {
+      const caps = a.capabilities || {};
+      const okModels = Object.keys(caps).filter(m => caps[m].ok).map(m => m.replace('claude-', 'c-').replace('gemini-2.5-', 'g-').replace('gpt-4o-', 'g-4o-'));
+      const failModels = Object.keys(caps).filter(m => !caps[m].ok).map(m => m.replace('claude-', 'c-').replace('gemini-2.5-', 'g-').replace('gpt-4o-', 'g-4o-'));
+      const tier = a.tier || 'unknown';
+      const tierDisp = tierLabel[tier] || tier;
+      const probedAt = a.lastProbed ? new Date(a.lastProbed).toLocaleString() : '尚未探測';
+      const capsHtml = (okModels.length || failModels.length)
+        ? `<span title="已探測: ${probedAt}" style="font-size:11px">` +
+          okModels.map(m => `<span style="color:var(--success);margin-right:4px">✓${m}</span>`).join('') +
+          failModels.map(m => `<span style="color:var(--error);margin-right:4px;text-decoration:line-through">${m}</span>`).join('') +
+          `</span>`
+        : `<span style="color:var(--muted);font-size:11px">尚未探測</span>`;
+      const rateLimitBadge = a.rateLimited ? ` <span class="badge" style="background:var(--warn);color:#000">限流中</span>` : '';
+      return `
       <tr>
         <td><code>${a.id}</code></td>
-        <td>${a.email}</td>
-        <td>${a.method}</td>
-        <td><span class="badge ${a.status}">${a.status}</span></td>
-        <td>${a.errorCount}</td>
-        <td>${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</td>
-        <td><code>${a.keyPrefix}</code></td>
-        <td>
-          ${a.status === 'active' ? `<button class="btn-outline btn btn-sm" onclick="App.toggleAccount('${a.id}','disabled')">Disable</button>` : `<button class="btn-success btn btn-sm" onclick="App.toggleAccount('${a.id}','active')">Enable</button>`}
-          <button class="btn-outline btn btn-sm" onclick="App.resetErrors('${a.id}')">Reset</button>
-          <button class="btn-danger btn btn-sm" onclick="App.deleteAccount('${a.id}')">Delete</button>
+        <td>${this.esc(a.email)}</td>
+        <td><span style="color:${tierColor[tier]};font-weight:600">${tierDisp}</span></td>
+        <td>${capsHtml}</td>
+        <td><span class="badge ${a.status}">${a.status}</span>${rateLimitBadge}</td>
+        <td style="color:${a.errorCount > 0 ? 'var(--error)' : 'inherit'}">${a.errorCount}</td>
+        <td style="font-size:12px">${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</td>
+        <td><code title="${this.esc(a.apiKey)}" style="cursor:pointer" onclick="App.copyKey('${this.esc(a.apiKey)}')">${a.keyPrefix}</code> <button class="btn-outline btn btn-sm" onclick="App.copyKey('${this.esc(a.apiKey)}')">複製</button></td>
+        <td style="white-space:nowrap">
+          <button class="btn-outline btn btn-sm" onclick="App.probeAccount('${a.id}')">探測</button>
+          ${a.status === 'active' ? `<button class="btn-outline btn btn-sm" onclick="App.toggleAccount('${a.id}','disabled')">停用</button>` : `<button class="btn-success btn btn-sm" onclick="App.toggleAccount('${a.id}','active')">啟用</button>`}
+          <button class="btn-outline btn btn-sm" onclick="App.resetErrors('${a.id}')">重置</button>
+          <button class="btn-danger btn btn-sm" onclick="App.deleteAccount('${a.id}')">刪除</button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted)">尚無帳號</td></tr>';
+  },
+
+  async probeAll() {
+    this.toast('全部探測中，依帳號數量約需 1-3 分鐘...');
+    try {
+      const r = await this.api('POST', '/accounts/probe-all', {});
+      if (r.success) {
+        const tierLabel = { pro: 'Pro', free: 'Free', expired: '已過期', unknown: '未知' };
+        const summary = (r.results || []).map(x => `${x.email}: ${tierLabel[x.tier] || x.tier || x.error}`).join('；');
+        this.toast('探測完成：' + summary);
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '探測失敗', 'error');
+      }
+    } catch (e) { this.toast('探測失敗: ' + e.message, 'error'); }
+  },
+
+  async probeAccount(id) {
+    this.toast('探測中，約需 10-30 秒...');
+    try {
+      const r = await this.api('POST', `/accounts/${id}/probe`, {});
+      if (r.success) {
+        const tierLabel = { pro: 'Pro', free: 'Free', expired: '已過期', unknown: '未知' };
+        this.toast(`探測完成：${tierLabel[r.tier] || r.tier}`);
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '探測失敗', 'error');
+      }
+    } catch (e) { this.toast('探測失敗: ' + e.message, 'error'); }
   },
 
   async addAccount() {
     const type = document.getElementById('acc-type').value;
     const key = document.getElementById('acc-key').value.trim();
     const label = document.getElementById('acc-label').value.trim();
-    if (!key) return this.toast('Enter a key or token', 'error');
+    if (!key) return this.toast('請輸入 Key 或 Token', 'error');
     const body = type === 'api_key' ? { api_key: key, label } : { token: key, label };
     const r = await this.api('POST', '/accounts', body);
-    if (r.success) { this.toast('Account added'); document.getElementById('acc-key').value = ''; this.loadAccounts(); }
-    else this.toast(r.error || 'Failed', 'error');
+    if (r.success) { this.toast('帳號已新增'); document.getElementById('acc-key').value = ''; this.loadAccounts(); }
+    else this.toast(r.error || '新增失敗', 'error');
   },
 
-  async toggleAccount(id, status) {
-    await this.api('PATCH', `/accounts/${id}`, { status });
-    this.loadAccounts();
+  async toggleAccount(id, status) { await this.api('PATCH', `/accounts/${id}`, { status }); this.loadAccounts(); },
+  async resetErrors(id) { await this.api('PATCH', `/accounts/${id}`, { resetErrors: true }); this.loadAccounts(); this.toast('錯誤已重置'); },
+  async deleteAccount(id) { if (!confirm('確定刪除此帳號？')) return; await this.api('DELETE', `/accounts/${id}`); this.loadAccounts(); this.toast('帳號已刪除'); },
+
+  // ─── Models ──────────────────────────────────────────
+  async loadModels() {
+    const [modelData, accessData] = await Promise.all([
+      this.api('GET', '/models'),
+      this.api('GET', '/model-access'),
+    ]);
+    this.allModels = modelData.models || [];
+    this.modelAccessConfig = accessData.mode ? accessData : { mode: 'all', list: [] };
+
+    document.querySelector(`input[name="model-mode"][value="${this.modelAccessConfig.mode}"]`).checked = true;
+    this.updateModelListUI();
   },
 
-  async resetErrors(id) {
-    await this.api('PATCH', `/accounts/${id}`, { resetErrors: true });
-    this.loadAccounts();
-    this.toast('Errors reset');
+  updateModelListUI() {
+    const sec = document.getElementById('model-list-section');
+    if (this.modelAccessConfig.mode === 'all') {
+      sec.style.display = 'none';
+      return;
+    }
+    sec.style.display = 'block';
+    const isAllow = this.modelAccessConfig.mode === 'allowlist';
+    document.getElementById('model-list-title').textContent = isAllow ? '允許的模型' : '封鎖的模型';
+    document.getElementById('model-list-hint').textContent = isAllow
+      ? '只有勾選的模型可以使用。未勾選的模型會回傳 403 錯誤。'
+      : '勾選的模型會被封鎖。未勾選的模型可以正常使用。';
+
+    // Show current list
+    const current = this.modelAccessConfig.list;
+    if (current.length > 0) {
+      document.getElementById('model-list-current').innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:4px">目前清單 (${current.length})：</div>
+        <div class="model-chips">${current.map(m => `<span class="model-chip selected"><span>${m}</span><span class="remove" onclick="App.removeModelFromList('${m}')">&times;</span></span>`).join('')}</div>`;
+    } else {
+      document.getElementById('model-list-current').innerHTML = '<div style="font-size:12px;color:var(--muted)">清單為空</div>';
+    }
+
+    this.filterModels();
   },
 
-  async deleteAccount(id) {
-    if (!confirm('Remove this account?')) return;
-    await this.api('DELETE', `/accounts/${id}`);
-    this.loadAccounts();
-    this.toast('Account removed');
+  filterModels() {
+    const search = (document.getElementById('model-search')?.value || '').toLowerCase();
+    const provider = document.getElementById('model-provider-filter')?.value || '';
+    const list = this.modelAccessConfig.list;
+
+    const filtered = this.allModels.filter(m => {
+      if (search && !m.name.toLowerCase().includes(search) && !m.provider.toLowerCase().includes(search)) return false;
+      if (provider && m.provider !== provider) return false;
+      return true;
+    });
+
+    const grouped = {};
+    for (const m of filtered) {
+      if (!grouped[m.provider]) grouped[m.provider] = [];
+      grouped[m.provider].push(m);
+    }
+
+    const container = document.getElementById('model-chips-container');
+    container.innerHTML = Object.entries(grouped).map(([prov, models]) =>
+      `<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--muted);text-transform:uppercase;margin-bottom:6px">${prov}</div>
+      <div class="model-chips">${models.map(m => {
+        const inList = list.includes(m.id);
+        return `<span class="model-chip ${inList ? 'selected' : ''}" onclick="App.toggleModelInList('${m.id}')">${m.name}</span>`;
+      }).join('')}</div></div>`
+    ).join('') || '<div style="color:var(--muted);font-size:13px">沒有符合的模型</div>';
+  },
+
+  async setModelMode(mode) {
+    await this.api('PUT', '/model-access', { mode });
+    this.modelAccessConfig.mode = mode;
+    this.updateModelListUI();
+    this.toast('模式已更新');
+  },
+
+  async toggleModelInList(modelId) {
+    const idx = this.modelAccessConfig.list.indexOf(modelId);
+    if (idx > -1) {
+      await this.api('POST', '/model-access/remove', { model: modelId });
+      this.modelAccessConfig.list.splice(idx, 1);
+    } else {
+      await this.api('POST', '/model-access/add', { model: modelId });
+      this.modelAccessConfig.list.push(modelId);
+    }
+    this.updateModelListUI();
+  },
+
+  async removeModelFromList(modelId) {
+    await this.api('POST', '/model-access/remove', { model: modelId });
+    this.modelAccessConfig.list = this.modelAccessConfig.list.filter(m => m !== modelId);
+    this.updateModelListUI();
   },
 
   // ─── Proxy ───────────────────────────────────────────
@@ -404,26 +744,30 @@ const App = {
     const d = await this.api('GET', '/proxy');
     if (d.global) {
       document.getElementById('proxy-type').value = d.global.type || 'http';
-      document.getElementById('proxy-host').value = d.global.host || '';
+      document.getElementById('proxy-host').value = (d.global.host || '').replace(/:\d+$/, '');
       document.getElementById('proxy-port').value = d.global.port || '';
       document.getElementById('proxy-user').value = d.global.username || '';
       document.getElementById('proxy-pass').value = d.global.password || '';
-      document.getElementById('proxy-current').textContent = `Current: ${d.global.type}://${d.global.host}:${d.global.port}`;
+      const h = (d.global.host || '').replace(/:\d+$/, '');
+      const authInfo = d.global.username ? ` (認證: ${d.global.username}:${d.global.password ? '***' : '無密碼'})` : '';
+      document.getElementById('proxy-current').textContent = `目前: ${d.global.type}://${h}:${d.global.port}${authInfo}`;
     } else {
-      document.getElementById('proxy-current').textContent = 'No global proxy configured';
+      document.getElementById('proxy-current').textContent = '未設定全域 Proxy';
     }
-    // Per-account
     const accts = await this.api('GET', '/accounts');
     const tbody = document.querySelector('#proxy-accounts-table tbody');
     const pa = d.perAccount || {};
     tbody.innerHTML = (accts.accounts || []).map(a => {
       const p = pa[a.id];
       return `<tr>
-        <td>${a.email} (${a.id})</td>
-        <td>${p ? `${p.type}://${p.host}:${p.port}` : '<span style="color:var(--muted)">None (uses global)</span>'}</td>
-        <td>${p ? `<button class="btn-danger btn btn-sm" onclick="App.clearAccountProxy('${a.id}')">Clear</button>` : ''}</td>
+        <td>${this.esc(a.email)} <code>(${a.id})</code></td>
+        <td>${p ? `${p.type}://${p.username ? p.username+'@' : ''}${p.host}:${p.port}` : '<span style="color:var(--muted)">無（使用全域）</span>'}</td>
+        <td style="white-space:nowrap">
+          <button class="btn-outline btn btn-sm" onclick="App.editAccountProxy('${a.id}','${this.esc(a.email)}')">設定</button>
+          ${p ? `<button class="btn-danger btn btn-sm" onclick="App.clearAccountProxy('${a.id}')">清除</button>` : ''}
+        </td>
       </tr>`;
-    }).join('');
+    }).join('') || '<tr><td colspan="3" style="text-align:center;color:var(--muted)">尚無帳號</td></tr>';
   },
 
   async saveGlobalProxy() {
@@ -434,22 +778,42 @@ const App = {
       username: document.getElementById('proxy-user').value,
       password: document.getElementById('proxy-pass').value,
     };
-    if (!cfg.host) return this.toast('Enter proxy host', 'error');
+    if (!cfg.host) return this.toast('請輸入 Proxy 主機', 'error');
     await this.api('PUT', '/proxy/global', cfg);
-    this.toast('Global proxy saved');
+    this.toast('全域 Proxy 已儲存');
     this.loadProxy();
   },
 
   async clearGlobalProxy() {
     await this.api('DELETE', '/proxy/global');
     ['proxy-host','proxy-port','proxy-user','proxy-pass'].forEach(id => document.getElementById(id).value = '');
-    this.toast('Global proxy cleared');
+    this.toast('全域 Proxy 已清除');
     this.loadProxy();
+  },
+
+  editAccountProxy(id, label) {
+    const input = prompt(`設定帳號 ${label} 的 Proxy\n格式: host:port 或 user:pass@host:port`);
+    if (!input) return;
+    let username = '', password = '', host = '', port = 8080;
+    const atIdx = input.lastIndexOf('@');
+    let hostPart = input;
+    if (atIdx > -1) {
+      const auth = input.slice(0, atIdx);
+      hostPart = input.slice(atIdx + 1);
+      const ci = auth.indexOf(':');
+      username = ci > -1 ? auth.slice(0, ci) : auth;
+      password = ci > -1 ? auth.slice(ci + 1) : '';
+    }
+    const parts = hostPart.split(':');
+    host = parts[0];
+    port = parseInt(parts[1]) || 8080;
+    this.api('PUT', `/proxy/accounts/${id}`, { type: 'http', host, port, username, password })
+      .then(() => { this.toast('帳號 Proxy 已設定'); this.loadProxy(); });
   },
 
   async clearAccountProxy(id) {
     await this.api('DELETE', `/proxy/accounts/${id}`);
-    this.toast('Account proxy cleared');
+    this.toast('帳號 Proxy 已清除');
     this.loadProxy();
   },
 
@@ -457,14 +821,13 @@ const App = {
   loadLogs() {
     this.logEntries = [];
     document.getElementById('log-container').innerHTML = '';
-    // SSE connection
     const url = '/dashboard/api/logs/stream';
     this.sseConn = new EventSource(url);
     this.sseConn.onmessage = (e) => {
       try {
         const entry = JSON.parse(e.data);
         this.logEntries.push(entry);
-        if (this.logEntries.length > 1000) this.logEntries.shift();
+        if (this.logEntries.length > 500) this.logEntries.shift();
         this.renderLogEntry(entry);
       } catch {}
     };
@@ -477,22 +840,36 @@ const App = {
     const search = document.getElementById('log-search').value.toLowerCase();
     if (levelFilter && entry.level !== levelFilter) return;
     if (search && !entry.msg.toLowerCase().includes(search)) return;
-
     const div = document.createElement('div');
     div.className = 'log-entry ' + entry.level;
     const ts = new Date(entry.ts).toLocaleTimeString();
-    div.innerHTML = `<span class="ts">${ts}</span><span class="lvl">[${entry.level.toUpperCase()}]</span> ${this.escHtml(entry.msg)}`;
+    div.innerHTML = `<span class="ts">${ts}</span><span class="lvl">[${entry.level.toUpperCase()}]</span> ${this.esc(entry.msg)}`;
     container.appendChild(div);
+    if (container.children.length > 500) container.removeChild(container.firstChild);
+    if (document.getElementById('log-autoscroll').checked) container.scrollTop = container.scrollHeight;
+  },
 
-    if (document.getElementById('log-autoscroll').checked) {
-      container.scrollTop = container.scrollHeight;
-    }
+  debouncedFilterLogs() {
+    clearTimeout(this._filterTimer);
+    this._filterTimer = setTimeout(() => this.filterLogs(), 200);
   },
 
   filterLogs() {
     const container = document.getElementById('log-container');
+    const frag = document.createDocumentFragment();
+    const levelFilter = document.getElementById('log-level').value;
+    const search = document.getElementById('log-search').value.toLowerCase();
+    for (const entry of this.logEntries) {
+      if (levelFilter && entry.level !== levelFilter) continue;
+      if (search && !entry.msg.toLowerCase().includes(search)) continue;
+      const div = document.createElement('div');
+      div.className = 'log-entry ' + entry.level;
+      const ts = new Date(entry.ts).toLocaleTimeString();
+      div.innerHTML = `<span class="ts">${ts}</span><span class="lvl">[${entry.level.toUpperCase()}]</span> ${this.esc(entry.msg)}`;
+      frag.appendChild(div);
+    }
     container.innerHTML = '';
-    this.logEntries.forEach(e => this.renderLogEntry(e));
+    container.appendChild(frag);
   },
 
   clearLogView() {
@@ -504,42 +881,35 @@ const App = {
   async loadStats() {
     const d = await this.api('GET', '/stats');
     document.getElementById('stats-cards').innerHTML = `
-      <div class="card blue"><div class="label">Total Requests</div><div class="value">${d.totalRequests || 0}</div></div>
-      <div class="card green"><div class="label">Success</div><div class="value">${d.successCount || 0}</div></div>
-      <div class="card red"><div class="label">Errors</div><div class="value">${d.errorCount || 0}</div></div>
-      <div class="card"><div class="label">Success Rate</div><div class="value">${d.totalRequests > 0 ? ((d.successCount/d.totalRequests)*100).toFixed(1) : 0}%</div></div>
+      <div class="card blue"><div class="label">總請求</div><div class="value">${d.totalRequests || 0}</div></div>
+      <div class="card green"><div class="label">成功</div><div class="value">${d.successCount || 0}</div></div>
+      <div class="card red"><div class="label">錯誤</div><div class="value">${d.errorCount || 0}</div></div>
+      <div class="card"><div class="label">成功率</div><div class="value">${d.totalRequests > 0 ? ((d.successCount/d.totalRequests)*100).toFixed(1) : 0}%</div></div>
     `;
-    // Model table
     const models = d.modelCounts || {};
     const tbody = document.querySelector('#model-stats-table tbody');
     tbody.innerHTML = Object.entries(models).map(([m, s]) => `
       <tr>
-        <td><code>${m}</code></td>
-        <td>${s.requests}</td>
-        <td>${s.success}</td>
-        <td>${s.errors}</td>
+        <td><code>${m}</code></td><td>${s.requests}</td><td>${s.success}</td><td>${s.errors}</td>
         <td>${s.requests > 0 ? ((s.success/s.requests)*100).toFixed(1) : 0}%</td>
         <td>${s.requests > 0 ? Math.round(s.totalMs/s.requests) : 0}ms</td>
       </tr>
-    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No requests yet</td></tr>';
+    `).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted)">尚無請求</td></tr>';
 
-    // Chart
     const buckets = (d.hourlyBuckets || []).slice(-24);
     const maxReq = Math.max(1, ...buckets.map(b => b.requests));
     document.getElementById('stats-chart').innerHTML = buckets.map(b => {
       const h = Math.max(2, (b.requests / maxReq) * 100);
-      const hasErr = b.errors > 0;
-      const label = new Date(b.hour).getHours() + ':00';
-      return `<div class="bar-wrap"><div class="bar ${hasErr ? 'has-errors' : ''}" style="height:${h}%" title="${b.requests} req, ${b.errors} err"></div><div class="bar-label">${label}</div></div>`;
-    }).join('') || '<div style="color:var(--muted);text-align:center;width:100%;padding:40px">No data yet</div>';
+      return `<div class="bar-wrap"><div class="bar ${b.errors > 0 ? 'has-errors' : ''}" style="height:${h}%" title="${b.requests} 請求 / ${b.errors} 錯誤"></div><div class="bar-label">${new Date(b.hour).getHours()}:00</div></div>`;
+    }).join('') || '<div style="color:var(--muted);text-align:center;width:100%;padding:30px">尚無資料</div>';
 
-    this.pollers.stats = setInterval(() => this.loadStats(), 15000);
+    this.pollers.stats = setInterval(() => this.loadStats(), 30000);
   },
 
   async resetStats() {
-    if (!confirm('Reset all statistics?')) return;
+    if (!confirm('確定重置所有統計？')) return;
     await this.api('DELETE', '/stats');
-    this.toast('Stats reset');
+    this.toast('統計已重置');
     this.loadStats();
   },
 
@@ -549,40 +919,58 @@ const App = {
     const accounts = d.accounts || [];
     const errored = accounts.filter(a => a.status === 'error' || a.errorCount > 0);
     document.getElementById('ban-cards').innerHTML = `
-      <div class="card ${errored.length > 0 ? 'red' : 'green'}"><div class="label">Flagged Accounts</div><div class="value">${errored.length}</div><div class="sub">of ${accounts.length} total</div></div>
-      <div class="card"><div class="label">Total Errored</div><div class="value">${accounts.filter(a => a.status === 'error').length}</div></div>
+      <div class="card ${errored.length > 0 ? 'red' : 'green'}"><div class="label">異常帳號</div><div class="value">${errored.length}</div><div class="sub">共 ${accounts.length} 個帳號</div></div>
+      <div class="card"><div class="label">已停用</div><div class="value">${accounts.filter(a => a.status === 'error').length}</div></div>
     `;
     const tbody = document.querySelector('#ban-table tbody');
     tbody.innerHTML = accounts.map(a => {
       const flagged = a.status === 'error' || a.errorCount > 0;
       return `<tr style="${flagged ? 'background:rgba(239,68,68,.05)' : ''}">
-        <td>${a.email} <code>(${a.id})</code></td>
+        <td>${this.esc(a.email)} <code>(${a.id})</code></td>
         <td><span class="badge ${a.status}">${a.status}</span></td>
         <td style="color:${a.errorCount > 0 ? 'var(--error)' : 'inherit'}">${a.errorCount}</td>
-        <td>${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</td>
-        <td>
-          ${a.status === 'error' ? `<button class="btn-success btn btn-sm" onclick="App.toggleAccount('${a.id}','active');App.loadBans()">Re-enable</button>` : ''}
-          ${a.errorCount > 0 ? `<button class="btn-outline btn btn-sm" onclick="App.resetErrors('${a.id}');App.loadBans()">Reset Errors</button>` : ''}
+        <td style="font-size:12px">${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</td>
+        <td style="white-space:nowrap">
+          ${a.status === 'error' ? `<button class="btn-success btn btn-sm" onclick="App.toggleAccount('${a.id}','active');setTimeout(()=>App.loadBans(),500)">重新啟用</button>` : ''}
+          ${a.errorCount > 0 ? `<button class="btn-outline btn btn-sm" onclick="App.resetErrors('${a.id}');setTimeout(()=>App.loadBans(),500)">重置錯誤</button>` : ''}
         </td>
       </tr>`;
-    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No accounts</td></tr>';
+    }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">尚無帳號</td></tr>';
 
     this.pollers.bans = setInterval(() => this.loadBans(), 30000);
   },
 
   // ─── Helpers ─────────────────────────────────────────
   fmtDuration(secs) {
-    const d = Math.floor(secs / 86400);
-    const h = Math.floor((secs % 86400) / 3600);
-    const m = Math.floor((secs % 3600) / 60);
+    const d = Math.floor(secs / 86400), h = Math.floor((secs % 86400) / 3600), m = Math.floor((secs % 3600) / 60);
     if (d > 0) return `${d}d ${h}h ${m}m`;
     if (h > 0) return `${h}h ${m}m`;
     return `${m}m ${Math.floor(secs % 60)}s`;
   },
-
-  escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  copyKey(key) {
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = key;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        this.toast(ok ? 'API Key 已複製' : '複製失敗，請手動選取', ok ? 'success' : 'error');
+      } catch (e) {
+        this.toast('複製失敗: ' + e.message, 'error');
+      }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(key).then(() => this.toast('API Key 已複製')).catch(fallback);
+    } else {
+      fallback();
+    }
   },
+  esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); },
 };
 
 window.addEventListener('DOMContentLoaded', () => App.init());

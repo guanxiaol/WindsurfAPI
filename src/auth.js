@@ -49,6 +49,7 @@ function saveAccounts() {
       tier: a.tier, capabilities: a.capabilities, lastProbed: a.lastProbed,
       credits: a.credits || null,
       blockedModels: a.blockedModels || [],
+      refreshToken: a.refreshToken || '',
     }));
     writeFileSync(ACCOUNTS_FILE, JSON.stringify(data, null, 2));
   } catch (e) {
@@ -69,7 +70,7 @@ function loadAccounts() {
         method: a.method || 'api_key',
         status: a.status || 'active',
         lastUsed: 0, errorCount: 0,
-        refreshToken: '', expiresAt: 0, refreshTimer: null,
+        refreshToken: a.refreshToken || '', expiresAt: 0, refreshTimer: null,
         addedAt: a.addedAt || Date.now(),
         tier: a.tier || 'unknown',
         capabilities: a.capabilities || {},
@@ -81,6 +82,27 @@ function loadAccounts() {
     if (data.length > 0) log.info(`Loaded ${data.length} account(s) from disk`);
   } catch (e) {
     log.error('Failed to load accounts:', e.message);
+  }
+}
+
+// ─── Dynamic model catalog from cloud ─────────────────────
+
+async function fetchAndMergeModelCatalog() {
+  // Use the first active account to fetch the catalog.
+  const acct = accounts.find(a => a.status === 'active' && a.apiKey);
+  if (!acct) {
+    log.debug('No active account for model catalog fetch');
+    return;
+  }
+  try {
+    const { getCascadeModelConfigs } = await import('./windsurf-api.js');
+    const { mergeCloudModels } = await import('./models.js');
+    const proxy = getEffectiveProxy(acct.id) || null;
+    const { configs } = await getCascadeModelConfigs(acct.apiKey, proxy);
+    const added = mergeCloudModels(configs);
+    log.info(`Model catalog: ${configs.length} cloud models, ${added} new entries merged`);
+  } catch (e) {
+    log.warn(`Model catalog fetch failed: ${e.message}`);
   }
 }
 
@@ -705,6 +727,10 @@ export async function initAuth() {
   setInterval(() => {
     refreshAllCredits().catch(e => log.warn(`Scheduled credit refresh: ${e.message}`));
   }, CREDIT_INTERVAL).unref?.();
+
+  // Fetch live model catalog from cloud and merge into hardcoded catalog.
+  // Fire-and-forget — the hardcoded catalog is sufficient until this completes.
+  fetchAndMergeModelCatalog().catch(e => log.warn(`Model catalog fetch: ${e.message}`));
 
   // Warm up an LS instance for each account's configured proxy so the first
   // chat request doesn't pay the spawn cost.

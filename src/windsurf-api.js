@@ -10,8 +10,9 @@
  *   Connect-Protocol-Version: 1
  *
  * Currently exposes:
- *   - getUserStatus(apiKey, proxy) — fetches plan info, quotas, and the bundled
- *     model catalog in one call.
+ *   - getUserStatus(apiKey, proxy)        — plan info, quotas, credit balance
+ *   - getCascadeModelConfigs(apiKey, proxy) — live model catalog (82+ models)
+ *   - checkMessageRateLimit(apiKey, proxy)  — pre-flight rate limit check
  */
 
 import http from 'http';
@@ -23,6 +24,8 @@ const SERVER_HOSTS = [
   'server.self-serve.windsurf.com',
 ];
 const USER_STATUS_PATH = '/exa.seat_management_pb.SeatManagementService/GetUserStatus';
+const MODEL_CONFIGS_PATH = '/exa.api_server_pb.ApiServerService/GetCascadeModelConfigs';
+const RATE_LIMIT_PATH = '/exa.api_server_pb.ApiServerService/CheckUserMessageRateLimit';
 
 // Tunnel HTTPS through an HTTP CONNECT proxy. Mirrors dashboard/windsurf-login.js
 // so per-account outbound IPs stay consistent across login and credit fetch.
@@ -192,4 +195,85 @@ function normalizeUserStatus(data) {
   }
 
   return out;
+}
+
+// ─── Dynamic model catalog ────────────────────────────────
+
+function buildMetadata(apiKey) {
+  return {
+    apiKey,
+    ideName: 'windsurf',
+    ideVersion: '1.108.2',
+    extensionName: 'windsurf',
+    extensionVersion: '1.108.2',
+    locale: 'en',
+  };
+}
+
+/**
+ * Fetch the live model catalog from Codeium's cloud.
+ * Returns an array of ClientModelConfig objects with modelUid, label,
+ * creditMultiplier, provider, maxTokens, supportsImages, etc.
+ *
+ * @param {string} apiKey
+ * @param {object} [proxy]
+ * @returns {Promise<{configs: object[], sorts: object[], defaultOverride: object|null}>}
+ */
+export async function getCascadeModelConfigs(apiKey, proxy = null) {
+  const body = { metadata: buildMetadata(apiKey) };
+
+  let lastErr = null;
+  for (const host of SERVER_HOSTS) {
+    try {
+      const res = await postJson(host, MODEL_CONFIGS_PATH, body, proxy);
+      if (res.status >= 400) {
+        lastErr = new Error(`GetCascadeModelConfigs ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
+        continue;
+      }
+      return {
+        configs: res.data.clientModelConfigs || [],
+        sorts: res.data.clientModelSorts || [],
+        defaultOverride: res.data.defaultOverrideModelConfig || null,
+      };
+    } catch (e) {
+      lastErr = e;
+      log.debug(`GetCascadeModelConfigs host ${host} failed: ${e.message}`);
+    }
+  }
+  throw lastErr || new Error('GetCascadeModelConfigs: all hosts failed');
+}
+
+/**
+ * Pre-flight check: does this account still have message capacity?
+ * Returns { hasCapacity, messagesRemaining, maxMessages }.
+ * -1 means unlimited.
+ *
+ * @param {string} apiKey
+ * @param {object} [proxy]
+ * @returns {Promise<{hasCapacity: boolean, messagesRemaining: number, maxMessages: number}>}
+ */
+export async function checkMessageRateLimit(apiKey, proxy = null) {
+  const body = { metadata: buildMetadata(apiKey) };
+
+  let lastErr = null;
+  for (const host of SERVER_HOSTS) {
+    try {
+      const res = await postJson(host, RATE_LIMIT_PATH, body, proxy);
+      if (res.status >= 400) {
+        lastErr = new Error(`CheckRateLimit ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
+        continue;
+      }
+      return {
+        hasCapacity: res.data.hasCapacity !== false,
+        messagesRemaining: res.data.messagesRemaining ?? -1,
+        maxMessages: res.data.maxMessages ?? -1,
+      };
+    } catch (e) {
+      lastErr = e;
+      log.debug(`CheckRateLimit host ${host} failed: ${e.message}`);
+    }
+  }
+  // On failure, assume capacity so we don't block requests.
+  log.warn(`CheckRateLimit failed: ${lastErr?.message}`);
+  return { hasCapacity: true, messagesRemaining: -1, maxMessages: -1 };
 }

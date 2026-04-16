@@ -360,6 +360,10 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       let account = null;
       if (autoAdd !== false) {
         account = addAccountByKey(result.apiKey, result.name || email);
+        // Store refresh token for later token refresh
+        if (result.refreshToken) {
+          account.refreshToken = result.refreshToken;
+        }
         // Persist the per-account proxy we used for login so chat requests
         // also egress through the same IP, then warm up a matching LS.
         if (loginProxy?.host) setAccountProxy(account.id, loginProxy);

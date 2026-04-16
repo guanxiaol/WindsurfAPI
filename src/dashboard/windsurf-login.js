@@ -9,6 +9,7 @@ import { log } from '../config.js';
 
 const FIREBASE_API_KEY = 'AIzaSyDsOl-1XpT5err0Tcnx8FFod1H8gVGIycY';
 const FIREBASE_AUTH_URL = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`;
+const FIREBASE_REFRESH_URL = `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`;
 const CODEIUM_REGISTER_URL = 'https://api.codeium.com/register_user/';
 
 // ─── Fingerprint randomization ────────────────────────────
@@ -215,6 +216,75 @@ export async function windsurfLogin(email, password, proxy = null) {
     name: regRes.data.name || email,
     email,
     idToken,
+    refreshToken: fbRes.data.refreshToken || '',
     apiServerUrl: regRes.data.api_server_url || '',
+  };
+}
+
+/**
+ * Refresh a Firebase ID token using a stored refresh token.
+ * Returns a new { idToken, refreshToken, expiresIn } or throws.
+ *
+ * @param {string} refreshToken
+ * @param {object} [proxy]
+ * @returns {Promise<{idToken: string, refreshToken: string, expiresIn: number}>}
+ */
+export async function refreshFirebaseToken(refreshToken, proxy = null) {
+  if (!refreshToken) throw new Error('No refresh token available');
+
+  const postBody = `grant_type=refresh_token&refresh_token=${encodeURIComponent(refreshToken)}`;
+  const headers = {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'Content-Length': Buffer.byteLength(postBody),
+    'Referer': 'https://windsurf.com/',
+    'Origin': 'https://windsurf.com',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/130.0.0.0 Safari/537.36',
+  };
+
+  const res = await httpsRequest(FIREBASE_REFRESH_URL, { method: 'POST', headers }, postBody, proxy);
+
+  if (res.data?.error) {
+    const msg = res.data.error.message || res.data.error.code || 'Unknown error';
+    throw new Error(`Firebase token refresh failed: ${msg}`);
+  }
+
+  const newIdToken = res.data?.id_token || res.data?.idToken;
+  const newRefreshToken = res.data?.refresh_token || res.data?.refreshToken || refreshToken;
+  const expiresIn = parseInt(res.data?.expires_in || res.data?.expiresIn || '3600', 10);
+
+  if (!newIdToken) {
+    throw new Error(`Firebase token refresh: no idToken in response: ${JSON.stringify(res.data).slice(0, 200)}`);
+  }
+
+  log.info(`Firebase token refreshed, expires in ${expiresIn}s`);
+  return { idToken: newIdToken, refreshToken: newRefreshToken, expiresIn };
+}
+
+/**
+ * Re-register with Codeium using a refreshed Firebase token.
+ * Returns a fresh API key (may be the same key if unchanged).
+ *
+ * @param {string} idToken - fresh Firebase ID token
+ * @param {object} [proxy]
+ * @returns {Promise<{apiKey: string, name: string}>}
+ */
+export async function reRegisterWithCodeium(idToken, proxy = null) {
+  const fingerprint = generateFingerprint();
+  const regBody = JSON.stringify({ firebase_id_token: idToken });
+  const regHeaders = {
+    ...fingerprint,
+    'Content-Type': 'application/json',
+    'Content-Length': Buffer.byteLength(regBody),
+  };
+
+  const regRes = await httpsRequest(CODEIUM_REGISTER_URL, { method: 'POST', headers: regHeaders }, regBody, proxy);
+
+  if (regRes.status >= 400 || !regRes.data.api_key) {
+    throw new Error(`Codeium re-registration failed: ${JSON.stringify(regRes.data).slice(0, 200)}`);
+  }
+
+  return {
+    apiKey: regRes.data.api_key,
+    name: regRes.data.name || '',
   };
 }

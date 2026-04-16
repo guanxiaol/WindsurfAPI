@@ -55,6 +55,12 @@ function createProxyTunnel(proxy, targetHost, targetPort) {
   });
 }
 
+/** Detect errors caused by the proxy itself (not the upstream API). */
+function isProxyError(err) {
+  const m = err?.message || '';
+  return /Proxy CONNECT failed|Proxy tunnel|Proxy connection/i.test(m);
+}
+
 function postJson(host, path, body, proxy) {
   return new Promise(async (resolve, reject) => {
     const postData = JSON.stringify(body);
@@ -127,18 +133,23 @@ export async function getUserStatus(apiKey, proxy = null) {
     },
   };
 
+  // Try with proxy first, then retry direct if proxy itself fails (407 etc.).
+  const proxyModes = proxy ? [proxy, null] : [null];
   let lastErr = null;
-  for (const host of SERVER_HOSTS) {
-    try {
-      const res = await postJson(host, USER_STATUS_PATH, body, proxy);
-      if (res.status >= 400) {
-        lastErr = new Error(`GetUserStatus ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
-        continue;
+  for (const px of proxyModes) {
+    for (const host of SERVER_HOSTS) {
+      try {
+        const res = await postJson(host, USER_STATUS_PATH, body, px);
+        if (res.status >= 400) {
+          lastErr = new Error(`GetUserStatus ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
+          continue;
+        }
+        return normalizeUserStatus(res.data);
+      } catch (e) {
+        lastErr = e;
+        log.debug(`GetUserStatus host ${host} failed: ${e.message}`);
+        if (px && isProxyError(e)) break; // skip second host, go straight to direct
       }
-      return normalizeUserStatus(res.data);
-    } catch (e) {
-      lastErr = e;
-      log.debug(`GetUserStatus host ${host} failed: ${e.message}`);
     }
   }
   throw lastErr || new Error('GetUserStatus: all hosts failed');
@@ -222,22 +233,26 @@ function buildMetadata(apiKey) {
 export async function getCascadeModelConfigs(apiKey, proxy = null) {
   const body = { metadata: buildMetadata(apiKey) };
 
+  const proxyModes = proxy ? [proxy, null] : [null];
   let lastErr = null;
-  for (const host of SERVER_HOSTS) {
-    try {
-      const res = await postJson(host, MODEL_CONFIGS_PATH, body, proxy);
-      if (res.status >= 400) {
-        lastErr = new Error(`GetCascadeModelConfigs ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
-        continue;
+  for (const px of proxyModes) {
+    for (const host of SERVER_HOSTS) {
+      try {
+        const res = await postJson(host, MODEL_CONFIGS_PATH, body, px);
+        if (res.status >= 400) {
+          lastErr = new Error(`GetCascadeModelConfigs ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
+          continue;
+        }
+        return {
+          configs: res.data.clientModelConfigs || [],
+          sorts: res.data.clientModelSorts || [],
+          defaultOverride: res.data.defaultOverrideModelConfig || null,
+        };
+      } catch (e) {
+        lastErr = e;
+        log.debug(`GetCascadeModelConfigs host ${host} failed: ${e.message}`);
+        if (px && isProxyError(e)) break;
       }
-      return {
-        configs: res.data.clientModelConfigs || [],
-        sorts: res.data.clientModelSorts || [],
-        defaultOverride: res.data.defaultOverrideModelConfig || null,
-      };
-    } catch (e) {
-      lastErr = e;
-      log.debug(`GetCascadeModelConfigs host ${host} failed: ${e.message}`);
     }
   }
   throw lastErr || new Error('GetCascadeModelConfigs: all hosts failed');
@@ -255,22 +270,26 @@ export async function getCascadeModelConfigs(apiKey, proxy = null) {
 export async function checkMessageRateLimit(apiKey, proxy = null) {
   const body = { metadata: buildMetadata(apiKey) };
 
+  const proxyModes = proxy ? [proxy, null] : [null];
   let lastErr = null;
-  for (const host of SERVER_HOSTS) {
-    try {
-      const res = await postJson(host, RATE_LIMIT_PATH, body, proxy);
-      if (res.status >= 400) {
-        lastErr = new Error(`CheckRateLimit ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
-        continue;
+  for (const px of proxyModes) {
+    for (const host of SERVER_HOSTS) {
+      try {
+        const res = await postJson(host, RATE_LIMIT_PATH, body, px);
+        if (res.status >= 400) {
+          lastErr = new Error(`CheckRateLimit ${host} → ${res.status}: ${res.raw.slice(0, 160)}`);
+          continue;
+        }
+        return {
+          hasCapacity: res.data.hasCapacity !== false,
+          messagesRemaining: res.data.messagesRemaining ?? -1,
+          maxMessages: res.data.maxMessages ?? -1,
+        };
+      } catch (e) {
+        lastErr = e;
+        log.debug(`CheckRateLimit host ${host} failed: ${e.message}`);
+        if (px && isProxyError(e)) break;
       }
-      return {
-        hasCapacity: res.data.hasCapacity !== false,
-        messagesRemaining: res.data.messagesRemaining ?? -1,
-        maxMessages: res.data.maxMessages ?? -1,
-      };
-    } catch (e) {
-      lastErr = e;
-      log.debug(`CheckRateLimit host ${host} failed: ${e.message}`);
     }
   }
   // On failure, assume capacity so we don't block requests.

@@ -13,6 +13,8 @@ import { recordRequest } from '../dashboard/stats.js';
 import { isModelAllowed } from '../dashboard/model-access.js';
 import { cacheKey, cacheGet, cacheSet } from '../cache.js';
 import { isExperimentalEnabled } from '../runtime-config.js';
+import { checkMessageRateLimit } from '../windsurf-api.js';
+import { getEffectiveProxy } from '../dashboard/proxy-config.js';
 import {
   fingerprintBefore, fingerprintAfter, checkout as poolCheckout, checkin as poolCheckin,
 } from '../conversation-pool.js';
@@ -271,6 +273,24 @@ export async function handleChatCompletions(body) {
       if (!acct) break;
     }
     tried.push(acct.apiKey);
+
+    // Pre-flight rate limit check (experimental): ask server.codeium.com if
+    // this account still has message capacity before burning an LS round trip.
+    if (isExperimentalEnabled('preflightRateLimit')) {
+      try {
+        const px = getEffectiveProxy(acct.id) || null;
+        const rl = await checkMessageRateLimit(acct.apiKey, px);
+        if (!rl.hasCapacity) {
+          log.warn(`Preflight: ${acct.email} has no capacity (remaining=${rl.messagesRemaining}), skipping`);
+          markRateLimited(acct.id, modelKey);
+          continue;
+        }
+      } catch (e) {
+        log.debug(`Preflight check failed for ${acct.email}: ${e.message}`);
+        // Fail open — proceed with the request
+      }
+    }
+
     await ensureLs(acct.proxy);
     const ls = getLsFor(acct.proxy);
     if (!ls) { lastErr = { status: 503, body: { error: { message: 'No LS instance available', type: 'ls_unavailable' } } }; break; }
@@ -621,6 +641,22 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
           }
           tried.push(acct.apiKey);
           currentApiKey = acct.apiKey;
+
+          // Pre-flight rate limit check (experimental)
+          if (isExperimentalEnabled('preflightRateLimit')) {
+            try {
+              const px = getEffectiveProxy(acct.id) || null;
+              const rl = await checkMessageRateLimit(acct.apiKey, px);
+              if (!rl.hasCapacity) {
+                log.warn(`Preflight: ${acct.email} has no capacity (remaining=${rl.messagesRemaining}), skipping`);
+                markRateLimited(acct.id, modelKey);
+                continue;
+              }
+            } catch (e) {
+              log.debug(`Preflight check failed for ${acct.email}: ${e.message}`);
+            }
+          }
+
           try { await ensureLs(acct.proxy); } catch (e) { lastErr = e; break; }
           const ls = getLsFor(acct.proxy);
           if (!ls) { lastErr = new Error('No LS instance available'); break; }

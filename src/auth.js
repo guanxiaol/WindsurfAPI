@@ -681,6 +681,33 @@ export function validateApiKey(key) {
   return key === config.apiKey;
 }
 
+// ─── Firebase token refresh ──────────────────────────────────
+
+/**
+ * Refresh Firebase tokens for all accounts that have a stored refreshToken.
+ * Re-registers with Codeium to get a fresh API key and updates the account.
+ */
+async function refreshAllFirebaseTokens() {
+  const { refreshFirebaseToken, reRegisterWithCodeium } = await import('./dashboard/windsurf-login.js');
+  for (const a of accounts) {
+    if (a.status !== 'active' || !a.refreshToken) continue;
+    try {
+      const proxy = getEffectiveProxy(a.id) || null;
+      const { idToken, refreshToken: newRefresh } = await refreshFirebaseToken(a.refreshToken, proxy);
+      a.refreshToken = newRefresh;
+      // Re-register to get a fresh API key (may be the same key)
+      const { apiKey } = await reRegisterWithCodeium(idToken, proxy);
+      if (apiKey && apiKey !== a.apiKey) {
+        log.info(`Firebase refresh: ${a.email} got new API key`);
+        a.apiKey = apiKey;
+      }
+      saveAccounts();
+    } catch (e) {
+      log.warn(`Firebase refresh ${a.email} failed: ${e.message}`);
+    }
+  }
+}
+
 // ─── Init from .env ────────────────────────────────────────
 
 export async function initAuth() {
@@ -731,6 +758,17 @@ export async function initAuth() {
   // Fetch live model catalog from cloud and merge into hardcoded catalog.
   // Fire-and-forget — the hardcoded catalog is sufficient until this completes.
   fetchAndMergeModelCatalog().catch(e => log.warn(`Model catalog fetch: ${e.message}`));
+
+  // Periodic Firebase token refresh (every 50 min). Firebase ID tokens expire
+  // after 60 min; refreshing at 50 keeps a comfortable margin.
+  const hasRefreshTokens = accounts.some(a => !!a.refreshToken);
+  if (hasRefreshTokens) {
+    const TOKEN_REFRESH_INTERVAL = 50 * 60 * 1000;
+    refreshAllFirebaseTokens().catch(e => log.warn(`Initial token refresh: ${e.message}`));
+    setInterval(() => {
+      refreshAllFirebaseTokens().catch(e => log.warn(`Scheduled token refresh: ${e.message}`));
+    }, TOKEN_REFRESH_INTERVAL).unref?.();
+  }
 
   // Warm up an LS instance for each account's configured proxy so the first
   // chat request doesn't pay the spawn cost.

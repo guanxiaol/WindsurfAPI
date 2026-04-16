@@ -20,8 +20,9 @@ import { poolStats as convPoolStats, poolClear as convPoolClear } from '../conve
 import { getLogs, subscribeToLogs, unsubscribeFromLogs } from './logger.js';
 import { getProxyConfig, setGlobalProxy, setAccountProxy, removeProxy, getEffectiveProxy } from './proxy-config.js';
 import { MODELS, MODEL_TIER_ACCESS as _TIER_TABLE, getTierModels as _getTierModels } from '../models.js';
-import { windsurfLogin } from './windsurf-login.js';
+import { windsurfLogin, refreshFirebaseToken, reRegisterWithCodeium } from './windsurf-login.js';
 import { getModelAccessConfig, setModelAccessMode, setModelAccessList, addModelToList, removeModelFromList } from './model-access.js';
+import { checkMessageRateLimit } from '../windsurf-api.js';
 
 function json(res, status, body) {
   const data = JSON.stringify(body);
@@ -380,6 +381,42 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
         apiServerUrl: result.apiServerUrl,
         account: account ? { id: account.id, email: account.email, status: account.status } : null,
       });
+    } catch (err) {
+      return json(res, 400, { error: err.message });
+    }
+  }
+
+  // ─── Rate Limit Check ──────────────────────────────────
+  // POST /accounts/:id/rate-limit — check capacity for a single account
+  const rateLimitCheck = subpath.match(/^\/accounts\/([^/]+)\/rate-limit$/);
+  if (rateLimitCheck && method === 'POST') {
+    const list = getAccountList();
+    const acct = list.find(a => a.id === rateLimitCheck[1]);
+    if (!acct) return json(res, 404, { error: 'Account not found' });
+    try {
+      const proxy = getEffectiveProxy(acct.id) || null;
+      const result = await checkMessageRateLimit(acct.apiKey, proxy);
+      return json(res, 200, { success: true, account: acct.email, ...result });
+    } catch (err) {
+      return json(res, 500, { error: err.message });
+    }
+  }
+
+  // ─── Firebase Token Refresh ───────────────────────────────
+  // POST /accounts/:id/refresh-token — manually refresh Firebase token
+  const tokenRefresh = subpath.match(/^\/accounts\/([^/]+)\/refresh-token$/);
+  if (tokenRefresh && method === 'POST') {
+    const list = getAccountList();
+    const acct = list.find(a => a.id === tokenRefresh[1]);
+    if (!acct) return json(res, 404, { error: 'Account not found' });
+    if (!acct.refreshToken) return json(res, 400, { error: 'Account has no refresh token' });
+    try {
+      const proxy = getEffectiveProxy(acct.id) || null;
+      const { idToken, refreshToken: newRefresh } = await refreshFirebaseToken(acct.refreshToken, proxy);
+      const { apiKey } = await reRegisterWithCodeium(idToken, proxy);
+      const keyChanged = apiKey && apiKey !== acct.apiKey;
+      // Update is handled by the auth module's internal reference
+      return json(res, 200, { success: true, keyChanged, email: acct.email });
     } catch (err) {
       return json(res, 400, { error: err.message });
     }

@@ -26,6 +26,10 @@ const DEFAULTS = {
     // instead of revealing the Windsurf/Cascade backend. Enabled by default
     // so API responses match official Claude/GPT behaviour.
     modelIdentityPrompt: true,
+    // Pre-flight rate limit check via server.codeium.com before sending a
+    // chat request. Reduces wasted attempts when the account has no message
+    // capacity. Adds one network round-trip per attempt so off by default.
+    preflightRateLimit: false,
   },
 };
 

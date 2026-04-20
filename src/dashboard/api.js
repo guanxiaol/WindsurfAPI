@@ -165,12 +165,22 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
       const after = await gitStatus();
       const changed = before.commit !== after.commit;
       // Schedule a detached restart so this response can flush before PM2 kills us.
+      // ESM-friendly import (require is unavailable in type:module).
       if (changed) {
-        setTimeout(() => {
+        setTimeout(async () => {
           try {
-            const { spawn } = require('node:child_process');
-            spawn('bash', ['update.sh'], { detached: true, stdio: 'ignore' }).unref();
-          } catch {}
+            const { spawn } = await import('node:child_process');
+            const cp = spawn('bash', ['update.sh'], {
+              detached: true,
+              stdio: 'ignore',
+              cwd: process.cwd(),
+              env: { ...process.env, PM2_NAME: 'windsurf-api' },
+            });
+            cp.unref();
+            log.info('self-update: spawned update.sh');
+          } catch (e) {
+            log.error('self-update spawn failed:', e.message);
+          }
         }, 800);
       }
       return json(res, 200, {

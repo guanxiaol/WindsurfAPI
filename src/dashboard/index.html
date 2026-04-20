@@ -1106,13 +1106,22 @@ tbody tr:hover td { background: var(--surface-2); }
       <div class="section-header">
         <div>
           <div class="section-title">账号列表</div>
-          <div class="section-desc">点击探测按钮可单独更新某个账号的能力信息</div>
+          <div class="section-desc">勾选账号后可批量停用/启用</div>
         </div>
+      </div>
+      <div id="batch-bar" style="display:none;padding:8px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;align-items:center;gap:8px">
+        <span id="batch-count" style="font-size:13px;color:var(--text-muted)">已选 0 个</span>
+        <button class="btn btn-primary btn-xs" onclick="App.batchSetStatus('active')">批量启用</button>
+        <button class="btn btn-outline btn-xs" onclick="App.batchSetStatus('disabled')">批量停用</button>
+        <span style="flex:1"></span>
+        <button class="btn btn-ghost btn-xs" onclick="App.selectAllAccounts()">全选</button>
+        <button class="btn btn-ghost btn-xs" onclick="App.invertSelectAccounts()">反选</button>
+        <button class="btn btn-ghost btn-xs" onclick="App.clearSelectAccounts()">取消</button>
       </div>
       <div class="section-body tight">
         <div class="table-wrap">
           <table id="accounts-table">
-            <thead><tr><th>ID</th><th>标签</th><th>层级</th><th>RPM</th><th>余额</th><th>可用模型</th><th>状态</th><th>错误</th><th>最后使用</th><th>Key</th><th>操作</th></tr></thead>
+            <thead><tr><th style="width:32px"><input type="checkbox" id="acct-select-all" onchange="App.onSelectAllToggle(this.checked)"></th><th>ID</th><th>标签</th><th>层级</th><th>RPM</th><th>余额</th><th>可用模型</th><th>状态</th><th>错误</th><th>最后使用</th><th>Key</th><th>操作</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -1869,35 +1878,46 @@ const App = {
       } else if (cr.lastError && cr.percent == null && !cr.prompt?.limit) {
         creditCell = `<span class="text-xs" style="color:var(--error)" title="${this.esc(cr.lastError)}">获取失败</span>`;
       } else {
-        const pct = cr.percent != null ? Math.max(0, Math.min(100, cr.percent)) : null;
-        const pctStr = pct != null ? pct.toFixed(0) + '%' : '-';
-        const pctColor = pct == null ? 'var(--text-dim)'
-          : pct <= 10 ? 'var(--error)'
-          : pct <= 30 ? 'var(--warn, #f59e0b)'
-          : 'var(--success, #10b981)';
         const planName = cr.planName || '-';
         const fetchedAgo = cr.fetchedAt ? Math.round((Date.now() - cr.fetchedAt) / 60000) + 'm ago' : '-';
+
+        const barHtml = (label, pct, resetAt) => {
+          if (pct == null) return '';
+          const v = Math.max(0, Math.min(100, pct));
+          const color = v <= 10 ? 'var(--error)' : v <= 30 ? 'var(--warn, #f59e0b)' : 'var(--success, #10b981)';
+          const resetStr = resetAt ? new Date(resetAt * 1000).toLocaleString() : '';
+          return `<div style="margin-bottom:3px" title="${label} 剩余 ${v.toFixed(1)}%${resetStr ? '，重置: ' + resetStr : ''}">
+            <div class="text-xs" style="display:flex;justify-content:space-between;margin-bottom:1px">
+              <span style="color:var(--text-dim)">${label}</span><span style="color:${color};font-weight:600">${v.toFixed(0)}%</span>
+            </div>
+            <div style="height:5px;background:var(--surface-3);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${v}%;background:${color};transition:width .3s"></div>
+            </div>
+          </div>`;
+        };
+
         const tipLines = [
           `Plan: ${planName}`,
-          cr.dailyPercent != null ? `Daily:  ${cr.dailyPercent.toFixed(1)}% left` : '',
-          cr.weeklyPercent != null ? `Weekly: ${cr.weeklyPercent.toFixed(1)}% left` : '',
           cr.prompt?.limit ? `Prompt: ${(cr.prompt.used || 0).toFixed(0)}/${cr.prompt.limit.toFixed(0)}` : '',
           cr.flex?.limit ? `Flex:   ${(cr.flex.used || 0).toFixed(0)}/${cr.flex.limit.toFixed(0)}` : '',
-          cr.dailyResetAt ? `Daily reset: ${new Date(cr.dailyResetAt * 1000).toLocaleString()}` : '',
+          cr.planStart ? `Plan period: ${cr.planStart.slice(0,10)} ~ ${(cr.planEnd||'').slice(0,10)}` : '',
           `Updated: ${fetchedAgo}`,
           cr.lastError ? `Last error: ${cr.lastError}` : '',
         ].filter(Boolean).join('\n');
-        creditCell = `<div style="min-width:100px" title="${this.esc(tipLines)}">
-            <div class="text-xs" style="display:flex;justify-content:space-between;margin-bottom:2px">
-              <span>${this.esc(planName.slice(0, 10))}</span><span style="color:${pctColor}">${pctStr}</span>
+
+        creditCell = `<div style="min-width:140px" title="${this.esc(tipLines)}">
+            <div class="text-xs" style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span style="font-weight:600">${this.esc(planName.slice(0, 10))}</span>
+              <span class="text-dim">${fetchedAgo}</span>
             </div>
-            <div style="height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden">
-              <div style="height:100%;width:${pct != null ? pct : 0}%;background:${pctColor};transition:width .3s"></div>
-            </div>
+            ${barHtml('日额度', cr.dailyPercent, cr.dailyResetAt)}
+            ${barHtml('周额度', cr.weeklyPercent, cr.weeklyResetAt)}
+            ${cr.prompt?.limit ? barHtml('Prompt', cr.percent, null) : ''}
           </div>`;
       }
       return `
       <tr>
+        <td><input type="checkbox" class="acct-cb" data-id="${a.id}" onchange="App.updateBatchBar()"></td>
         <td><code>${a.id}</code></td>
         <td>${this.esc(a.email)}</td>
         <td><span class="tier ${tier}">${tierLabel[tier] || tier}</span></td>
@@ -1922,7 +1942,7 @@ const App = {
           </div>
         </td>
       </tr>`;
-    }).join('') || '<tr class="empty-row"><td colspan="11">暂无账号，请先添加</td></tr>';
+    }).join('') || '<tr class="empty-row"><td colspan="12">暂无账号，请先添加</td></tr>';
   },
 
   async refreshCredits(id) {
@@ -2147,6 +2167,59 @@ const App = {
     await this.api('DELETE', `/accounts/${id}`);
     this.loadAccounts();
     this.toast('账号已删除');
+  },
+
+  // ─── Batch selection ──────────────────────────
+  _getSelectedIds() {
+    return [...document.querySelectorAll('.acct-cb:checked')].map(cb => cb.dataset.id);
+  },
+  _getAllCbs() {
+    return [...document.querySelectorAll('.acct-cb')];
+  },
+  updateBatchBar() {
+    const ids = this._getSelectedIds();
+    const bar = document.getElementById('batch-bar');
+    if (ids.length > 0) {
+      bar.style.display = 'flex';
+      document.getElementById('batch-count').textContent = `已选 ${ids.length} 个`;
+    } else {
+      bar.style.display = 'none';
+    }
+    const allCbs = this._getAllCbs();
+    const selectAll = document.getElementById('acct-select-all');
+    if (selectAll) selectAll.checked = allCbs.length > 0 && ids.length === allCbs.length;
+  },
+  onSelectAllToggle(checked) {
+    this._getAllCbs().forEach(cb => cb.checked = checked);
+    this.updateBatchBar();
+  },
+  selectAllAccounts() {
+    this._getAllCbs().forEach(cb => cb.checked = true);
+    this.updateBatchBar();
+  },
+  invertSelectAccounts() {
+    this._getAllCbs().forEach(cb => cb.checked = !cb.checked);
+    this.updateBatchBar();
+  },
+  clearSelectAccounts() {
+    this._getAllCbs().forEach(cb => cb.checked = false);
+    this.updateBatchBar();
+  },
+  async batchSetStatus(status) {
+    const ids = this._getSelectedIds();
+    if (!ids.length) return this.toast('请先勾选账号', 'error');
+    const label = status === 'active' ? '启用' : '停用';
+    const ok = await this.confirm(`批量${label}`, `确定要${label} ${ids.length} 个账号吗？`, { okText: label });
+    if (!ok) return;
+    try {
+      const r = await this.api('POST', '/accounts/batch-status', { ids, status });
+      if (r.success) {
+        this.toast(`已${label} ${ids.length} 个账号`);
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '操作失败', 'error');
+      }
+    } catch (e) { this.toast('操作失败: ' + e.message, 'error'); }
   },
 
   // ─── Models ──────────────────────────────────

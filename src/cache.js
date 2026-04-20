@@ -3,7 +3,7 @@
  *
  * Cascade/Windsurf upstream does not expose Anthropic-style prompt caching,
  * so we add an in-memory, exact-match cache keyed on the normalized request
- * body. This only helps with duplicate requests (Claude Code retries, parallel
+ * body. This only helps with duplicate requests (Anthropic clients retries, parallel
  * identical calls), not prefix-caching.
  */
 

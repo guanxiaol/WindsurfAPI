@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, rmSync, readdirSync } from 'fs';
 import { resolve as pathResolve } from 'path';
 
 export const BRAND = 'WindsurfAPI bydwgx1337';
-export const VERSION = '1.2.0';
+export const VERSION = '2.0.0';
 
 async function main() {
   const banner = `

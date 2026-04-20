@@ -21,6 +21,7 @@ const ACCOUNTS_FILE = join(process.cwd(), 'accounts.json');
 
 const accounts = [];
 let _roundRobinIndex = 0;
+let _refreshTimerStarted = false;
 
 // Per-tier requests-per-minute limits. Used for both filter-by-cap and
 // weighted selection (accounts with more headroom are preferred).
@@ -181,6 +182,53 @@ export async function addAccountByToken(token, label = '') {
   // Now that we have an active account, refresh the cloud model catalog so
   // newly-released models (e.g. Claude Opus 4.7 family) show up in /v1/models
   // without requiring a server restart. Fire-and-forget.
+  fetchAndMergeModelCatalog().catch(e => log.warn(`Auto model-catalog refresh: ${e.message}`));
+  return account;
+}
+
+/**
+ * Add account via Firebase refresh token.
+ * Refreshes the token to get an idToken, then registers with Codeium for an API key.
+ */
+export async function addAccountByRefreshToken(refreshToken, label = '') {
+  const { refreshFirebaseToken, reRegisterWithCodeium } = await import('./dashboard/windsurf-login.js');
+
+  const { idToken, refreshToken: newRefresh } = await refreshFirebaseToken(refreshToken);
+  const { apiKey, name } = await reRegisterWithCodeium(idToken);
+
+  const existing = accounts.find(a => a.apiKey === apiKey);
+  if (existing) {
+    if (newRefresh && newRefresh !== existing.refreshToken) {
+      existing.refreshToken = newRefresh;
+      saveAccounts();
+      log.info(`Account ${existing.id} (${existing.email}) refreshToken updated (duplicate key)`);
+    }
+    return existing;
+  }
+
+  const account = {
+    id: randomUUID().slice(0, 8),
+    email: label || name || `refresh-${apiKey.slice(0, 8)}`,
+    apiKey,
+    apiServerUrl: '',
+    method: 'refresh_token',
+    status: 'active',
+    lastUsed: 0,
+    errorCount: 0,
+    refreshToken: newRefresh || refreshToken,
+    expiresAt: 0,
+    refreshTimer: null,
+    addedAt: Date.now(),
+    tier: 'unknown',
+    capabilities: {},
+    lastProbed: 0,
+    blockedModels: [],
+    credits: null,
+  };
+  accounts.push(account);
+  saveAccounts();
+  log.info(`Account added: ${account.id} (${account.email}) [refresh_token]`);
+  ensureRefreshTimer();
   fetchAndMergeModelCatalog().catch(e => log.warn(`Auto model-catalog refresh: ${e.message}`));
   return account;
 }
@@ -439,6 +487,7 @@ export function reportError(apiKey) {
   account.errorCount++;
   if (account.errorCount >= 3) {
     account.status = 'error';
+    saveAccounts();
     log.warn(`Account ${account.id} (${account.email}) disabled after ${account.errorCount} errors`);
   }
 }
@@ -452,6 +501,7 @@ export function reportSuccess(apiKey) {
   if (account.errorCount > 0) {
     account.errorCount = 0;
     account.status = 'active';
+    saveAccounts();
   }
   account.internalErrorStreak = 0;
 }
@@ -505,6 +555,10 @@ export function isAuthenticated() {
   return accounts.some(a => a.status === 'active');
 }
 
+// Publish to globalThis so stats.js can resolve apiKey→email without
+// a circular import. Safe because getAccountList is a pure read function.
+globalThis.__windsurf_getAccountList = getAccountList;
+
 export function getAccountList() {
   const now = Date.now();
   return accounts.map(a => {
@@ -555,7 +609,7 @@ export async function refreshCredits(id) {
     const { raw, ...persist } = status;
     account.credits = persist;
     // Tier hint: if the plan info is explicit, prefer it over capability probing.
-    if (status.planName && /pro|teams|enterprise/i.test(status.planName)) {
+    if (status.planName && /pro|trial|teams|enterprise/i.test(status.planName)) {
       if (account.tier !== 'pro') account.tier = 'pro';
     } else if (/free/i.test(status.planName || '')) {
       if (account.tier === 'unknown') account.tier = 'free';
@@ -689,6 +743,24 @@ export function validateApiKey(key) {
 // ─── Firebase token refresh ──────────────────────────────────
 
 /**
+ * Lazily start the 50-min Firebase token refresh interval.
+ * Called from initAuth and from addAccountByRefreshToken so the timer
+ * starts even when the first refresh-token account is added after boot.
+ */
+function ensureRefreshTimer() {
+  if (_refreshTimerStarted) return;
+  const hasRefreshTokens = accounts.some(a => !!a.refreshToken);
+  if (!hasRefreshTokens) return;
+  _refreshTimerStarted = true;
+  const TOKEN_REFRESH_INTERVAL = 50 * 60 * 1000;
+  refreshAllFirebaseTokens().catch(e => log.warn(`Initial token refresh: ${e.message}`));
+  setInterval(() => {
+    refreshAllFirebaseTokens().catch(e => log.warn(`Scheduled token refresh: ${e.message}`));
+  }, TOKEN_REFRESH_INTERVAL).unref?.();
+  log.info('Firebase token refresh timer started (every 50 min)');
+}
+
+/**
  * Refresh Firebase tokens for all accounts that have a stored refreshToken.
  * Re-registers with Codeium to get a fresh API key and updates the account.
  */
@@ -766,14 +838,7 @@ export async function initAuth() {
 
   // Periodic Firebase token refresh (every 50 min). Firebase ID tokens expire
   // after 60 min; refreshing at 50 keeps a comfortable margin.
-  const hasRefreshTokens = accounts.some(a => !!a.refreshToken);
-  if (hasRefreshTokens) {
-    const TOKEN_REFRESH_INTERVAL = 50 * 60 * 1000;
-    refreshAllFirebaseTokens().catch(e => log.warn(`Initial token refresh: ${e.message}`));
-    setInterval(() => {
-      refreshAllFirebaseTokens().catch(e => log.warn(`Scheduled token refresh: ${e.message}`));
-    }, TOKEN_REFRESH_INTERVAL).unref?.();
-  }
+  ensureRefreshTimer();
 
   // ── Periodic health probe for token-only accounts ─────────────
   // Session tokens (e.g. devin-session-token$...) have no refresh pathway,

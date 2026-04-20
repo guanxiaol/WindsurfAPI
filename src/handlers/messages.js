@@ -7,7 +7,7 @@
  *             OpenAI SSE (chat.completion.chunk) ↔ Anthropic SSE
  *             (message_start / content_block_* / message_delta / message_stop)
  *
- * This lets Claude Code (and any Anthropic-SDK client) point ANTHROPIC_BASE_URL
+ * This lets Anthropic-SDK clients point ANTHROPIC_BASE_URL
  * at WindsurfAPI directly, no protocol-translation middlebox required.
  *
  * Spec refs:
@@ -21,12 +21,12 @@ import { resolveModel } from '../models.js';
 import { config, log } from '../config.js';
 
 // ── Model name aliasing ────────────────────────────────────
-// Claude Code sends names like "claude-opus-4-5-20250929" or the bare alias
+// Anthropic clients sends names like "claude-opus-4-5-20250929" or the bare alias
 // "opus"/"sonnet"/"haiku". Map them onto Windsurf's catalog before handing
 // the body to handleChatCompletions.
 const ALIAS_MAP = {
-  // Bare CC aliases → latest Windsurf equivalent
-  'opus':   'claude-opus-4.7-max',
+  // Bare client aliases → latest Windsurf equivalent
+  'opus':   'claude-opus-4.6-thinking',
   'sonnet': 'claude-sonnet-4.6',
   'haiku':  'claude-4.5-haiku',
 };
@@ -36,7 +36,7 @@ const VALID_EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
 /**
  * Map a CC-sent model name to a Windsurf catalog entry.
  *
- * Claude Code 2.1.114 internally ships the model family name as `model`
+ * Anthropic clients internally ship the model family name as `model`
  * (e.g. `claude-opus-4-7`, `claude-sonnet-4-6`, `claude-haiku-4-5-20251001`)
  * and passes the chosen effort tier separately in `output_config.effort`.
  * Our catalog stores Opus 4.7 as five separate entries keyed by effort
@@ -53,9 +53,9 @@ function mapModel(name, effort) {
   if (!name) return config.defaultModel;
   const eff = VALID_EFFORTS.has((effort || '').toLowerCase()) ? effort.toLowerCase() : null;
 
-  // CC appends "[1m]" to the model string to request the 1M-token context
-  // variant of Sonnet 4.6 (see CC binary: function it9 returns H+"[1m]" for
-  // opus-4-7 / opus-4-6 / sonnet-4-6 when long-context mode triggers).
+  // Client appends "[1m]" to the model string to request the 1M-token context
+  // variant of Sonnet 4.6 (opus-4-7 / opus-4-6 / sonnet-4-6 use this
+  // suffix when long-context mode triggers).
   // Strip the suffix for catalog matching and remember the flag for routing.
   const wants1m = /\[1m\]$/.test(name);
   const bareName = wants1m ? name.replace(/\[1m\]$/, '') : name;
@@ -71,26 +71,20 @@ function mapModel(name, effort) {
     return resolved;
   }
 
-  // CC bare aliases (haiku/sonnet/opus without version)
+  // Client bare aliases (haiku/sonnet/opus without version)
   const lower = bareName.toLowerCase();
-  if (ALIAS_MAP[lower]) return eff && lower === 'opus' ? `claude-opus-4.7-${eff}` : ALIAS_MAP[lower];
+  if (ALIAS_MAP[lower]) return ALIAS_MAP[lower];
 
-  // Claude Opus 4.7 family — effort-tiered. Opus 4.7 is already 1M-baseline,
-  // so the [1m] flag (if any) is a no-op for this family.
-  if (/claude.*opus.*4[-_.]7.*max/i.test(bareName))    return 'claude-opus-4.7-max';
-  if (/claude.*opus.*4[-_.]7.*xhigh/i.test(bareName))  return 'claude-opus-4.7-xhigh';
-  if (/claude.*opus.*4[-_.]7.*high/i.test(bareName))   return 'claude-opus-4.7-high';
-  if (/claude.*opus.*4[-_.]7.*medium/i.test(bareName)) return 'claude-opus-4.7-medium';
-  if (/claude.*opus.*4[-_.]7.*low/i.test(bareName))    return 'claude-opus-4.7-low';
-  if (/claude.*opus.*4[-_.]7/i.test(bareName))         return eff ? `claude-opus-4.7-${eff}` : 'claude-opus-4.7-max';
+  // Claude Opus 4.7 family — redirected to opus 4.6 thinking per user config.
+  if (/claude.*opus.*4[-_.]7/i.test(bareName))         return 'claude-opus-4.6-thinking';
 
   // Older Opus families — effort heuristic (high/xhigh/max → thinking variant)
   if (/claude.*opus.*4[-_.]6/i.test(bareName)) {
     return (eff && ['high','xhigh','max'].includes(eff)) ? 'claude-opus-4.6-thinking' : 'claude-opus-4.6';
   }
 
-  // Fallback bare opus → latest 4.7 at chosen effort
-  if (/claude.*opus/i.test(bareName)) return eff ? `claude-opus-4.7-${eff}` : 'claude-opus-4.7-max';
+  // Fallback bare opus → opus 4.6 thinking
+  if (/claude.*opus/i.test(bareName)) return 'claude-opus-4.6-thinking';
 
   // Sonnet — 4.6 family. Honour [1m] to pick the 1M-context variant.
   const sonnetThinking = /claude.*sonnet.*thinking/i.test(bareName);
@@ -222,7 +216,7 @@ function anthropicMessageToOpenAI(msg) {
   const out = [];
 
   // User turns: emit role:tool messages first for any tool_results, then any
-  // remaining text/images as a single role:user message. Claude Code
+  // remaining text/images as a single role:user message. Anthropic clients
   // interleaves tool_result + user text within the same user message (per
   // Anthropic's protocol), OpenAI requires them as separate role=tool msgs.
   if (role === 'user') {
@@ -321,7 +315,7 @@ function buildOpenAIBody(anthropicBody) {
     }
   }
 
-  // Claude Code 2.1.114 places the effort tier in output_config.effort;
+  // Anthropic clients place the effort tier in output_config.effort;
   // older Anthropic clients use top-level `effort`. Honour both.
   const effort = anthropicBody.output_config?.effort || anthropicBody.effort;
   const openaiBody = {

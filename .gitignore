@@ -41,3 +41,4 @@ __pycache__/
 # ────────── Local tooling not shipped ──────────
 .claude/
 .playwright-mcp/
+dist/

@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import {
   validateApiKey, isAuthenticated, getAccountList, getAccountCount,
-  addAccountByEmail, addAccountByToken, addAccountByKey, removeAccount,
+  addAccountByEmail, addAccountByToken, addAccountByKey, addAccountByRefreshToken, removeAccount,
 } from './auth.js';
 import { handleChatCompletions } from './handlers/chat.js';
 import { handleModels } from './handlers/models.js';
@@ -37,7 +37,7 @@ function readBody(req) {
 
 function extractToken(req) {
   // Support both OpenAI-style `Authorization: Bearer <key>` and Anthropic-style
-  // `x-api-key: <key>` header. Claude Code sends the latter when ANTHROPIC_BASE_URL
+  // `x-api-key: <key>` header. Anthropic clients send the latter when ANTHROPIC_BASE_URL
   // is set, so /v1/messages MUST accept it for the drop-in UX to work.
   const xApiKey = req.headers['x-api-key'];
   if (xApiKey && typeof xApiKey === 'string') return xApiKey;
@@ -66,7 +66,7 @@ async function route(req, res) {
     return json(res, 200, {
       status: 'ok',
       provider: 'WindsurfAPI bydwgx1337',
-      version: '1.2.0',
+      version: '2.0.0',
       uptime: Math.round(process.uptime()),
       accounts: counts,
     });
@@ -126,6 +126,8 @@ async function route(req, res) {
               result = addAccountByKey(acct.api_key, acct.label);
             } else if (acct.token) {
               result = await addAccountByToken(acct.token, acct.label);
+            } else if (acct.refresh_token) {
+              result = await addAccountByRefreshToken(acct.refresh_token, acct.label);
             } else if (acct.email && acct.password) {
               result = await addAccountByEmail(acct.email, acct.password);
             } else {
@@ -146,10 +148,12 @@ async function route(req, res) {
         account = addAccountByKey(body.api_key, body.label);
       } else if (body.token) {
         account = await addAccountByToken(body.token, body.label);
+      } else if (body.refresh_token) {
+        account = await addAccountByRefreshToken(body.refresh_token, body.label);
       } else if (body.email && body.password) {
         account = await addAccountByEmail(body.email, body.password);
       } else {
-        return json(res, 400, { error: 'Provide api_key, token, or email+password' });
+        return json(res, 400, { error: 'Provide api_key, token, refresh_token, or email+password' });
       }
 
       return json(res, 200, {
@@ -199,7 +203,7 @@ async function route(req, res) {
     return;
   }
 
-  // Anthropic Messages API — /v1/messages. Lets Claude Code and any Anthropic
+  // Anthropic Messages API — /v1/messages. Lets Anthropic clients and any Anthropic
   // SDK point ANTHROPIC_BASE_URL at us directly, no protocol translator required.
   if (path === '/v1/messages' && method === 'POST') {
     if (!isAuthenticated()) {
@@ -261,7 +265,7 @@ export function startServer() {
   server.listen({ port: config.port, host: '0.0.0.0' }, () => {
     log.info(`Server on http://0.0.0.0:${config.port}`);
     log.info('  POST /v1/chat/completions  (OpenAI format)');
-    log.info('  POST /v1/messages          (Anthropic format — Claude Code native)');
+    log.info('  POST /v1/messages          (Anthropic format — Anthropic clients native)');
     log.info('  GET  /v1/models');
     log.info('  POST /auth/login           (add account)');
     log.info('  GET  /auth/accounts        (list accounts)');

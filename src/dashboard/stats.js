@@ -17,6 +17,25 @@
 import { readFileSync, writeFileSync, renameSync, existsSync } from 'fs';
 import { join } from 'path';
 
+// Lazy-resolved reference to auth.js (avoids circular-import at parse time).
+let _getAccountList = null;
+function resolveAccountEmail(apiKey) {
+  if (!apiKey) return '';
+  try {
+    if (!_getAccountList) {
+      // auth.js is guaranteed to be fully loaded by the time any HTTP
+      // request triggers recordRequest(), so a sync property read on the
+      // already-cached module is safe.
+      _getAccountList = globalThis.__windsurf_getAccountList;
+    }
+    if (_getAccountList) {
+      const match = _getAccountList().find(a => a.apiKey === apiKey);
+      if (match) return match.email;
+    }
+  } catch {}
+  return String(apiKey).slice(0, 16);
+}
+
 const STATS_FILE = join(process.cwd(), 'stats.json');
 const SCHEMA_VERSION = 2;
 
@@ -213,7 +232,7 @@ export function recordRequestFull(opts) {
   const creditSpent = Math.max(0, Number(credit) || 0);
   const failed = !success;
 
-  const authIndex = accountId ? String(accountId).slice(0, 16) : '';
+  const authIndex = resolveAccountEmail(accountId);
   const detail = {
     timestamp: new Date(timestamp).toISOString(),
     latencyMs: Math.max(0, Math.round(durationMs || 0)),

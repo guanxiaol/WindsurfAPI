@@ -174,6 +174,19 @@ export async function handleDashboardApi(method, subpath, body, req, res) {
     return json(res, r.ok ? 200 : 400, r);
   }
 
+  // POST /accounts/batch-status — batch enable/disable
+  if (subpath === '/accounts/batch-status' && method === 'POST') {
+    const { ids, status } = body;
+    if (!Array.isArray(ids) || !['active', 'disabled'].includes(status)) {
+      return json(res, 400, { error: 'Provide ids[] and status (active|disabled)' });
+    }
+    const results = ids.map(id => {
+      const ok = setAccountStatus(id, status);
+      return { id, ok };
+    });
+    return json(res, 200, { success: true, results });
+  }
+
   // PATCH /accounts/:id
   const accountPatch = subpath.match(/^\/accounts\/([^/]+)$/);
   if (accountPatch && method === 'PATCH') {

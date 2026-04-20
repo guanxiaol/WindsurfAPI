@@ -66,7 +66,7 @@ async function route(req, res) {
     return json(res, 200, {
       status: 'ok',
       provider: 'WindsurfPoolAPI',
-      version: '2.0.1',
+      version: '2.0.2',
       uptime: Math.round(process.uptime()),
       accounts: counts,
     });

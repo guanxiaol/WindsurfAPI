@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, rmSync, readdirSync } from 'fs';
 import { resolve as pathResolve } from 'path';
 
 export const BRAND = 'WindsurfPoolAPI';
-export const VERSION = '2.0.1';
+export const VERSION = '2.0.2';
 
 async function main() {
   const banner = `

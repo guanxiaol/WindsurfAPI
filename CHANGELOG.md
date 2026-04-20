@@ -1,5 +1,45 @@
 # Changelog
 
+## v2.0.2 (2026-04-21)
+
+### Bug Fixes — CC / SSE Streaming
+
+Fixes the "Claude Code feels stuck / some content not showing" issue reported on thinking-heavy models.
+
+- **Immediate `message_start` + `ping` on stream entry** (`handlers/messages.js`)
+  Anthropic SSE now emits the initial message envelope and a ping *before* awaiting upstream's first token. CC's UI exits the "connecting" state within milliseconds instead of sitting silent for the full LS cold-start + Windsurf first-token window (previously 8-15s on Opus thinking models).
+- **`thinking` content block `signature` field** (`handlers/messages.js`)
+  `content_block_start` for thinking blocks now includes `signature: ''`. Some CC builds silently dropped thinking blocks without this field.
+- **Heartbeat 15s → 5s** (`handlers/chat.js`)
+  Keeps CC's idle-watchdog happy through long reasoning pauses. Negligible network cost (SSE comment, ~6 bytes).
+- **Initial `:ping` on `/v1/chat/completions`** (`handlers/chat.js`)
+  OpenAI-protocol clients also benefit from immediate byte-flow instead of silent warmup.
+- **TCP NoDelay + flushHeaders + keepalive** (`server.js`)
+  Disables Nagle on streaming endpoints so rapid small deltas aren't coalesced into 40ms batches. `flushHeaders()` pushes response headers to the client immediately after `writeHead`.
+
+### Verification
+
+Measured time-to-first-byte on `/v1/messages`: **4ms** (previously seconds on cold LS).
+
+---
+
+## v2.0.1 (2026-04-21)
+
+### Features from upstream dwgx/WindsurfAPI integration
+
+- Dynamic cold-stall threshold (30s–90s based on input length)
+- OAuth login endpoint (`POST /oauth-login`) for Google/GitHub Firebase auth
+- Token persistence via `setAccountTokens` — refresh + id tokens survive restarts
+- Firebase manual token refresh persists fresh credentials to disk
+
+### Rebranding
+
+- Project renamed to **WindsurfPoolAPI**
+- Professional bilingual README (EN/CN) with dashboard screenshots
+- GitHub repository renamed + updated topics
+
+---
+
 ## v2.0.0 (2026-04-20)
 
 ### New Features

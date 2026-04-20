@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Windsurf API — Windsurf 的 OpenAI 相容代理服務</title>
+<meta name="description" content="在你的伺服器上無頭運行 Windsurf 的 80+ AI 模型，透過標準 OpenAI / Anthropic API 端點對外提供服務。多帳號池、管理後台、Token/Credit 精細統計、零依賴。">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0b10;--surface:#12141d;--surface2:#1a1d2b;--border:#252836;
+  --text:#e2e4ea;--muted:#6b7189;--accent:#6366f1;--accent2:#818cf8;
+  --success:#22c55e;--warn:#f59e0b;--error:#ef4444;
+  --font:'Segoe UI',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono','Fira Code','Cascadia Code',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.7;overflow-x:hidden}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* ── Nav ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,11,16,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.75rem 2rem;display:flex;align-items:center;justify-content:space-between}
+nav .logo{font-weight:700;font-size:1.1rem;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+nav .links{display:flex;gap:1.5rem;font-size:.9rem}
+nav .links a{color:var(--muted)}
+nav .links a:hover{color:var(--text);text-decoration:none}
+
+/* ── Hero ── */
+.hero{
+  min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:6rem 2rem 4rem;
+  background:radial-gradient(ellipse at 50% 0%,rgba(99,102,241,.15) 0%,transparent 60%);
+}
+.hero h1{font-size:3.8rem;font-weight:800;letter-spacing:-.03em;margin-bottom:.75rem}
+.hero h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2),#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.hero .subtitle{font-size:1.3rem;color:var(--muted);max-width:650px;margin-bottom:2.5rem}
+.hero .badges{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center;margin-bottom:2.5rem}
+.badge{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .9rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;font-size:.85rem;color:var(--text);white-space:nowrap}
+.badge .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.badge .dot.green{background:var(--success)}.badge .dot.blue{background:#3b82f6}.badge .dot.purple{background:var(--accent)}
+
+.btn-group{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-flex;align-items:center;gap:.5rem;padding:.8rem 2rem;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2);text-decoration:none}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border)}
+.btn-outline:hover{border-color:var(--accent);text-decoration:none}
+
+.container{max-width:1100px;margin:0 auto;padding:0 2rem}
+section{padding:5rem 0}
+section h2{font-size:2.2rem;font-weight:700;margin-bottom:.5rem;text-align:center}
+section .section-sub{text-align:center;color:var(--muted);margin-bottom:3rem;font-size:1.05rem}
+
+/* ── Features ── */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+.feature{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;transition:border-color .2s}
+.feature:hover{border-color:var(--accent)}
+.feature .icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:1.2rem;font-weight:700;font-family:var(--mono)}
+.feature .icon.i1{background:rgba(99,102,241,.15);color:var(--accent2)}
+.feature .icon.i2{background:rgba(34,197,94,.15);color:var(--success)}
+.feature .icon.i3{background:rgba(59,130,246,.15);color:#3b82f6}
+.feature .icon.i4{background:rgba(245,158,11,.15);color:var(--warn)}
+.feature .icon.i5{background:rgba(168,139,250,.15);color:#a78bfa}
+.feature .icon.i6{background:rgba(239,68,68,.15);color:var(--error)}
+.feature h3{font-size:1.15rem;font-weight:600;margin-bottom:.5rem}
+.feature p{color:var(--muted);font-size:.95rem}
+
+/* ── Code ── */
+.code-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1.5rem}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1.25rem;background:var(--surface2);border-bottom:1px solid var(--border)}
+.code-header span{font-size:.85rem;color:var(--muted);font-family:var(--mono)}
+pre{padding:1.25rem;overflow-x:auto;font-family:var(--mono);font-size:.88rem;line-height:1.7}
+pre code{color:var(--text)}
+.tc{color:#6b7189}.ts{color:#22c55e}.tk{color:var(--accent2)}.tw{color:var(--warn)}.tu{color:#3b82f6}
+
+/* ── Models ── */
+.models-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}
+.model-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.5rem}
+.model-card h4{font-size:1rem;font-weight:600;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem}
+.model-card .pv{font-size:.75rem;padding:.15rem .5rem;border-radius:4px;font-weight:500}
+.pv.an{background:rgba(99,102,241,.15);color:var(--accent2)}
+.pv.oa{background:rgba(34,197,94,.15);color:var(--success)}
+.pv.go{background:rgba(59,130,246,.15);color:#3b82f6}
+.pv.ot{background:rgba(245,158,11,.15);color:var(--warn)}
+.model-card ul{list-style:none;margin-top:.5rem}
+.model-card li{font-size:.85rem;color:var(--muted);padding:.2rem 0;font-family:var(--mono)}
+.model-card li::before{content:">";margin-right:.5rem;color:var(--border)}
+.free-tag{font-size:.65rem;background:rgba(34,197,94,.15);color:var(--success);padding:.1rem .4rem;border-radius:3px;margin-left:.3rem;font-family:var(--font)}
+
+/* ── Dashboard ── */
+.dashboard-preview{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-top:1.5rem}
+.panel-tag{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center}
+.panel-tag .name{font-weight:600;font-size:.95rem;margin-bottom:.25rem}
+.panel-tag .desc{font-size:.8rem;color:var(--muted)}
+
+/* ── Deploy ── */
+.steps{counter-reset:step}
+.step{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:2rem;margin-bottom:1.25rem;position:relative;padding-left:4.5rem}
+.step::before{counter-increment:step;content:counter(step);position:absolute;left:1.5rem;top:2rem;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.9rem}
+.step h3{font-size:1.1rem;font-weight:600;margin-bottom:.5rem}
+.step p{color:var(--muted);font-size:.95rem;margin-bottom:.75rem}
+.step code{background:var(--surface2);padding:.15rem .5rem;border-radius:4px;font-family:var(--mono);font-size:.85rem}
+
+/* ── Arch ── */
+.arch{display:flex;flex-direction:column;align-items:center;gap:0;font-family:var(--mono);font-size:.9rem}
+.arch-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:.75rem 2rem;text-align:center;min-width:320px}
+.arch-box.hl{border-color:var(--accent);background:rgba(99,102,241,.08)}
+.arch-arrow{color:var(--border);font-size:1.2rem;line-height:1.5}
+
+/* ── Note ── */
+.note{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:1rem 1.25rem;margin-top:1.5rem;font-size:.95rem;color:var(--accent2)}
+.note strong{color:var(--text)}
+
+.footer{border-top:1px solid var(--border);padding:3rem 2rem;text-align:center;color:var(--muted);font-size:.9rem}
+.footer a{color:var(--accent2)}
+
+@media(max-width:768px){
+  nav .links{display:none}
+  .hero h1{font-size:2.4rem}
+  .hero .subtitle{font-size:1rem}
+  .features{grid-template-columns:1fr}
+  .models-grid{grid-template-columns:1fr}
+  .step{padding-left:1.5rem;padding-top:3.5rem}
+  .step::before{top:1rem;left:1.5rem}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Windsurf API</span>
+  <div class="links">
+    <a href="#features">功能</a>
+    <a href="#models">模型</a>
+    <a href="#deploy">部署教學</a>
+    <a href="#dashboard">管理後台</a>
+    <a href="https://github.com/guanxiaol/WindsurfAPI">GitHub</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <h1><span>Windsurf API</span></h1>
+  <p class="subtitle">
+    Windsurf 的 OpenAI / Anthropic 雙相容代理服務。在你的伺服器上無頭運行 80+ AI 模型，透過標準 API 端點對外提供服務。
+  </p>
+  <div class="badges">
+    <span class="badge"><span class="dot green"></span> 零依賴</span>
+    <span class="badge"><span class="dot blue"></span> 80+ 模型</span>
+    <span class="badge"><span class="dot purple"></span> OpenAI 相容</span>
+  </div>
+  <div class="btn-group">
+    <a href="https://github.com/guanxiaol/WindsurfAPI" class="btn btn-primary">GitHub 倉庫</a>
+    <a href="#deploy" class="btn btn-outline">部署教學</a>
+  </div>
+</section>
+
+<!-- ═══ 功能 ═══ -->
+<section id="features">
+  <div class="container">
+    <h2>功能特色</h2>
+    <p class="section-sub">將 Windsurf 的 AI 模型作為 API 服務運行所需的一切</p>
+    <div class="features">
+      <div class="feature">
+        <div class="icon i1">API</div>
+        <h3>OpenAI 相容 API</h3>
+        <p>直接替換 /v1/chat/completions 和 /v1/models，可搭配任何 OpenAI SDK 或用戶端使用。</p>
+      </div>
+      <div class="feature">
+        <div class="icon i2">80+</div>
+        <h3>80+ AI 模型</h3>
+        <p>Claude、GPT、Gemini、DeepSeek、Grok、Qwen、Kimi 及 Windsurf SWE 模型，一個 API 全部存取。</p>
+      </div>
+      <div class="feature">
+        <div class="icon i3">Pool</div>
+        <h3>多帳號池</h3>
+        <p>多個 Windsurf 帳號輪詢負載均衡，自動錯誤追蹤與故障轉移。</p>
+      </div>
+      <div class="feature">
+        <div class="icon i4">UI</div>
+        <h3>管理後台</h3>
+        <p>Web 介面管理帳號、代理配置、即時日誌串流、請求統計與封禁偵測。</p>
+      </div>
+      <div class="feature">
+        <div class="icon i5">SSE</div>
+        <h3>串流支援</h3>
+        <p>完整 SSE 串流輸出，相容 OpenAI 格式。支援串流與非串流兩種模式。</p>
+      </div>
+      <div class="feature">
+        <div class="icon i6">0</div>
+        <h3>零依賴</h3>
+        <p>純 Node.js 實作，僅使用內建模組，無需 npm install。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 模型 ═══ -->
+<section id="models" style="background:var(--surface2)">
+  <div class="container">
+    <h2>支援的模型</h2>
+    <p class="section-sub">來自 8+ 個供應商的 80+ 個模型，透過一個 API 統一存取</p>
+    <div class="models-grid">
+      <div class="model-card">
+        <h4>Claude <span class="pv an">Anthropic</span></h4>
+        <ul>
+          <li>claude-3.5 / 3.7-sonnet</li>
+          <li>claude-4-sonnet / opus</li>
+          <li>claude-4.1-opus</li>
+          <li>claude-4.5-sonnet / haiku / opus</li>
+          <li>claude-sonnet / opus-4.6</li>
+          <li>claude-code</li>
+        </ul>
+      </div>
+      <div class="model-card">
+        <h4>GPT <span class="pv oa">OpenAI</span></h4>
+        <ul>
+          <li>gpt-4o<span class="free-tag">免費</span> / 4o-mini<span class="free-tag">免費</span></li>
+          <li>gpt-4.1 / mini / nano</li>
+          <li>gpt-5 / 5-mini</li>
+          <li>gpt-5.2 / 5.3 / 5.4</li>
+          <li>o3 / o3-pro / o4-mini</li>
+        </ul>
+      </div>
+      <div class="model-card">
+        <h4>Gemini <span class="pv go">Google</span></h4>
+        <ul>
+          <li>gemini-2.5-pro / flash<span class="free-tag">免費</span></li>
+          <li>gemini-3.0-pro / flash</li>
+          <li>gemini-3.1-pro</li>
+        </ul>
+      </div>
+      <div class="model-card">
+        <h4>其他 <span class="pv ot">多家</span></h4>
+        <ul>
+          <li>deepseek-v3 / r1</li>
+          <li>grok-3 / grok-3-mini</li>
+          <li>qwen-3 / qwen-3-coder</li>
+          <li>kimi-k2 / k2.5</li>
+          <li>swe-1.5 / 1.6</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <strong>免費帳號可用模型：</strong>gpt-4o-mini 和 gemini-2.5-flash。其餘模型需要 Windsurf Pro 訂閱。
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 部署教學 ═══ -->
+<section id="deploy">
+  <div class="container">
+    <h2>部署教學</h2>
+    <p class="section-sub">從零開始在 Linux 伺服器上部署，幾分鐘內完成</p>
+
+    <div class="steps">
+      <div class="step">
+        <h3>安裝 Node.js</h3>
+        <p>需要 Node.js 20 或更高版本。</p>
+        <div class="code-section">
+          <div class="code-header"><span>bash</span></div>
+          <pre><code><span class="tc"># Ubuntu / Debian</span>
+<span class="tw">curl</span> -fsSL https://deb.nodesource.com/setup_20.x | bash -
+<span class="tw">apt install</span> -y nodejs
+
+<span class="tc"># 驗證安裝</span>
+<span class="tw">node</span> -v   <span class="tc"># 應顯示 v20.x 或更高</span></code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>取得 Language Server</h3>
+        <p>從 Windsurf 的 Linux 版本中提取 <code>language_server_linux_x64</code> 二進位檔。</p>
+        <div class="code-section">
+          <div class="code-header"><span>bash</span></div>
+          <pre><code><span class="tc"># 建立目錄並放置二進位檔</span>
+<span class="tw">mkdir -p</span> /opt/windsurf /opt/windsurf/data/db
+<span class="tw">cp</span> language_server_linux_x64 /opt/windsurf/
+<span class="tw">chmod</span> +x /opt/windsurf/language_server_linux_x64</code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>下載專案</h3>
+        <div class="code-section">
+          <div class="code-header"><span>bash</span></div>
+          <pre><code><span class="tw">git clone</span> <span class="tu">https://github.com/guanxiaol/WindsurfAPI.git</span>
+<span class="tw">cd</span> WindsurfAPI</code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>設定環境變數</h3>
+        <p>建立 <code>.env</code> 檔案，依需求修改設定。</p>
+        <div class="code-section">
+          <div class="code-header"><span>.env</span></div>
+          <pre><code><span class="tk">PORT</span>=<span class="ts">3003</span>
+<span class="tk">API_KEY</span>=<span class="tc">                          # 留空 = 不驗證 API 密鑰</span>
+<span class="tk">DEFAULT_MODEL</span>=<span class="ts">gpt-4o-mini</span>         <span class="tc"># 預設模型</span>
+<span class="tk">MAX_TOKENS</span>=<span class="ts">8192</span>
+<span class="tk">LOG_LEVEL</span>=<span class="ts">info</span>                    <span class="tc"># debug / info / warn / error</span>
+<span class="tk">LS_BINARY_PATH</span>=<span class="ts">/opt/windsurf/language_server_linux_x64</span>
+<span class="tk">LS_PORT</span>=<span class="ts">42100</span>
+<span class="tk">DASHBOARD_PASSWORD</span>=<span class="tc">               # 留空 = 後台免密碼</span></code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>啟動服務</h3>
+        <p>推薦使用 PM2 做程序管理，支援自動重啟和開機自動啟動。</p>
+        <div class="code-section">
+          <div class="code-header"><span>bash</span></div>
+          <pre><code><span class="tc"># 安裝 PM2</span>
+<span class="tw">npm install</span> -g pm2
+
+<span class="tc"># 啟動服務</span>
+<span class="tw">pm2 start</span> src/index.js --name windsurf-api
+
+<span class="tc"># 設定開機自動啟動</span>
+<span class="tw">pm2 save</span>
+<span class="tw">pm2 startup</span></code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>新增 Windsurf 帳號</h3>
+        <p>服務啟動後，需要至少新增一個帳號才能使用。Token 從 Windsurf 編輯器登入後取得。</p>
+        <div class="code-section">
+          <div class="code-header"><span>bash</span></div>
+          <pre><code><span class="tc"># 使用 Token 新增帳號</span>
+<span class="tw">curl</span> -X POST <span class="tu">http://localhost:3003/auth/login</span> \
+  -H <span class="ts">"Content-Type: application/json"</span> \
+  -d <span class="ts">'{"token": "你的-windsurf-token"}'</span>
+
+<span class="tc"># 使用 API Key</span>
+<span class="tw">curl</span> -X POST <span class="tu">http://localhost:3003/auth/login</span> \
+  -H <span class="ts">"Content-Type: application/json"</span> \
+  -d <span class="ts">'{"api_key": "sk-ws-..."}'</span>
+
+<span class="tc"># 批次新增多個帳號</span>
+<span class="tw">curl</span> -X POST <span class="tu">http://localhost:3003/auth/login</span> \
+  -H <span class="ts">"Content-Type: application/json"</span> \
+  -d <span class="ts">'{"accounts": [{"token":"t1"},{"token":"t2"}]}'</span></code></pre>
+        </div>
+      </div>
+
+      <div class="step">
+        <h3>驗證並使用</h3>
+        <div class="code-section">
+          <div class="code-header"><span>bash</span></div>
+          <pre><code><span class="tc"># 健康檢查</span>
+<span class="tw">curl</span> <span class="tu">http://localhost:3003/health</span>
+
+<span class="tc"># 測試對話</span>
+<span class="tw">curl</span> <span class="tu">http://localhost:3003/v1/chat/completions</span> \
+  -H <span class="ts">"Content-Type: application/json"</span> \
+  -d <span class="ts">'{"model":"gpt-4o-mini","messages":[{"role":"user","content":"你好"}]}'</span>
+
+<span class="tc"># 打開管理後台</span>
+<span class="tc"># 瀏覽器訪問 http://你的IP:3003/dashboard</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>重啟注意：</strong>不要使用 <code>pm2 restart</code>，會產生殭屍程序。正確方式：<code>pm2 stop &amp;&amp; pm2 delete &amp;&amp; fuser -k 3003/tcp &amp;&amp; pm2 start</code>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 管理後台 ═══ -->
+<section id="dashboard" style="background:var(--surface2)">
+  <div class="container">
+    <h2>管理後台</h2>
+    <p class="section-sub">功能完整的 Web 管理介面，訪問 /dashboard</p>
+    <div class="dashboard-preview">
+      <div class="panels">
+        <div class="panel-tag">
+          <div class="name">總覽</div>
+          <div class="desc">運行時間、帳號池狀態、成功率</div>
+        </div>
+        <div class="panel-tag">
+          <div class="name">帳號管理</div>
+          <div class="desc">新增、刪除、停用、標籤編輯</div>
+        </div>
+        <div class="panel-tag">
+          <div class="name">代理配置</div>
+          <div class="desc">全域及個別帳號代理設定</div>
+        </div>
+        <div class="panel-tag">
+          <div class="name">日誌檢視</div>
+          <div class="desc">即時 SSE 串流、級別篩選</div>
+        </div>
+        <div class="panel-tag">
+          <div class="name">請求統計</div>
+          <div class="desc">按模型/帳號指標與圖表</div>
+        </div>
+        <div class="panel-tag">
+          <div class="name">封禁偵測</div>
+          <div class="desc">錯誤模式與帳號健康監控</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 架構 ═══ -->
+<section id="architecture">
+  <div class="container">
+    <h2>架構</h2>
+    <p class="section-sub">輕量代理鏈，零外部依賴</p>
+    <div class="arch">
+      <div class="arch-box">用戶端（OpenAI SDK / curl）</div>
+      <div class="arch-arrow">|</div>
+      <div class="arch-box hl">WindsurfAPI（Node.js，埠號 3003）</div>
+      <div class="arch-arrow">|</div>
+      <div class="arch-box">Language Server（gRPC，埠號 42100）</div>
+      <div class="arch-arrow">|</div>
+      <div class="arch-box">Windsurf 後端</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <p>Windsurf API &mdash; <a href="https://github.com/guanxiaol/WindsurfAPI">GitHub</a> &mdash; MIT License</p>
+</footer>
+
+</body>
+</html>

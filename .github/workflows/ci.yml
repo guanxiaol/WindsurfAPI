@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  syntax:
+    name: Node ${{ matrix.node }} syntax check
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # The project has zero npm dependencies, so there's no `npm install` here.
+      # `node --check` parses each file and fails the job on any syntax error.
+      - name: Syntax-check every .js under src/
+        run: |
+          set -e
+          find src -name '*.js' -type f -print0 | while IFS= read -r -d '' f; do
+            echo "::group::$f"
+            node --check "$f"
+            echo "::endgroup::"
+          done
+
+      - name: Confirm zero npm dependencies
+        run: |
+          # The project is meant to run on pure Node.js builtins.
+          # If someone adds a `dependencies` block to package.json this test
+          # flags it so the maintainers notice in review.
+          if node -e "const p=require('./package.json'); if(p.dependencies && Object.keys(p.dependencies).length>0) {console.error('Unexpected deps:',p.dependencies); process.exit(1)}"; then
+            echo "OK: no npm dependencies"
+          fi

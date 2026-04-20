@@ -1,0 +1,43 @@
+# ────────── Node ──────────
+node_modules/
+
+# ────────── Runtime state (never commit) ──────────
+.env
+accounts.json
+proxy-config.json
+model-access.json
+stats.json
+runtime-config.json
+src/runtime-config.json
+
+# ────────── Logs ──────────
+logs/
+*.log
+server.log
+
+# ────────── Language-Server workspace ──────────
+data/
+
+# ────────── OS / editor junk ──────────
+.DS_Store
+**/.DS_Store
+.idea/
+.vscode/
+
+# ────────── Build & test artefacts ──────────
+dist/
+build/
+coverage/
+.nyc_output/
+*.tgz
+__pycache__/
+*.pyc
+
+# ────────── Secrets safety net ──────────
+*.pem
+*.key
+*-private.json
+
+# ────────── Local tooling not shipped ──────────
+.claude/
+.playwright-mcp/

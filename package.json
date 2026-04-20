@@ -1,0 +1,38 @@
+{
+  "name": "windsurfapi",
+  "version": "1.2.0",
+  "description": "Windsurf → OpenAI / Anthropic compatible proxy with multi-account pool, token/credit stats, and admin dashboard.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "check": "find src -name '*.js' -type f -exec node --check {} +"
+  },
+  "keywords": [
+    "windsurf",
+    "codeium",
+    "openai",
+    "anthropic",
+    "proxy",
+    "api",
+    "claude-code",
+    "language-server"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guanxiaol/WindsurfAPI.git"
+  },
+  "author": "guanxiaol (fork) <guanxiaol@users.noreply.github.com>",
+  "contributors": [
+    "dwgx1337 (original author) <https://github.com/dwgx>"
+  ],
+  "bugs": {
+    "url": "https://github.com/guanxiaol/WindsurfAPI/issues"
+  },
+  "homepage": "https://github.com/guanxiaol/WindsurfAPI#readme"
+}

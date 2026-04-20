@@ -1,0 +1,36 @@
+services:
+  windsurfapi:
+    build: .
+    image: windsurfapi:latest
+    container_name: windsurfapi
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      LS_PORT: 42100
+      LS_BINARY_PATH: /opt/windsurf/language_server_linux_x64
+      DEFAULT_MODEL: gpt-4o-mini
+      MAX_TOKENS: 8192
+      LOG_LEVEL: info
+      # Set a password to protect the dashboard. Leave empty for open access.
+      DASHBOARD_PASSWORD: ""
+      # Optional — require an API key for /v1/* endpoints.
+      API_KEY: ""
+    volumes:
+      # Mount the Windsurf Language Server binary from the host. The binary is
+      # closed-source Windsurf and cannot be baked into the image.
+      - /opt/windsurf:/opt/windsurf:ro
+      # Persist runtime state across container restarts.
+      - ./accounts.json:/app/accounts.json
+      - ./stats.json:/app/stats.json
+      - ./runtime-config.json:/app/runtime-config.json
+      - ./proxy-config.json:/app/proxy-config.json
+      - ./model-access.json:/app/model-access.json
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

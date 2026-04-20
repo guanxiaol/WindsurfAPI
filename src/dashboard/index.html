@@ -1,0 +1,2694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WindsurfAPI bydwgx1337 控制台</title>
+<style>
+:root {
+  --bg: #09090b;
+  --bg-elev: #0d0d10;
+  --surface: #111114;
+  --surface-2: #17171c;
+  --surface-3: #1c1c22;
+  --border: #26262e;
+  --border-strong: #32323c;
+  --text: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --accent: #6366f1;
+  --accent-hover: #7c7ff5;
+  --accent-soft: rgba(99, 102, 241, .14);
+  --success: #22c55e;
+  --success-soft: rgba(34, 197, 94, .14);
+  --warn: #f59e0b;
+  --warn-soft: rgba(245, 158, 11, .14);
+  --error: #ef4444;
+  --error-soft: rgba(239, 68, 68, .14);
+  --info: #3b82f6;
+  --info-soft: rgba(59, 130, 246, .14);
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-lg: 14px;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px rgba(0,0,0,.2);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,.4);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+*::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 5px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+a { color: var(--accent); text-decoration: none; }
+code {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* ─── Sidebar ──────────────────────────────────── */
+.sidebar {
+  width: 232px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+}
+.sidebar .brand {
+  padding: 20px 22px 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar .brand-logo {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; color: #fff; font-size: 15px;
+  box-shadow: 0 4px 12px rgba(99,102,241,.35);
+}
+.sidebar .brand-name { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.sidebar .brand-sub { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+
+.sidebar nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+.sidebar nav .nav-group { margin-bottom: 18px; }
+.sidebar nav .nav-group-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-dim);
+  padding: 0 12px 6px;
+  font-weight: 600;
+}
+.sidebar nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  transition: all .15s;
+  margin-bottom: 2px;
+}
+.sidebar nav a:hover { color: var(--text); background: var(--surface-2); }
+.sidebar nav a.active {
+  color: var(--text);
+  background: var(--surface-3);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.sidebar nav a svg { width: 16px; height: 16px; stroke-width: 2; flex-shrink: 0; }
+
+.sidebar .footer {
+  padding: 12px 18px;
+  font-size: 11px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.sidebar .footer .ver { font-family: var(--mono); }
+
+/* ─── Main Layout ─────────────────────────────── */
+.main {
+  margin-left: 232px;
+  flex: 1;
+  padding: 28px 36px 40px;
+  min-height: 100vh;
+  max-width: 1400px;
+}
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.page-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.panel { display: none; animation: fadeIn .2s ease; }
+.panel.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Cards ───────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: border-color .15s;
+}
+.card:hover { border-color: var(--border-strong); }
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.card-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.card-icon {
+  width: 18px; height: 18px;
+  color: var(--text-dim);
+}
+.card-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  margin-top: 6px;
+}
+.card-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.card.accent .card-value { color: var(--accent); }
+.card.success .card-value { color: var(--success); }
+.card.warn .card-value { color: var(--warn); }
+.card.error .card-value { color: var(--error); }
+.card.info .card-value { color: var(--info); }
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+/* ─── Section Block ───────────────────────────── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.section-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+.section-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-weight: 400;
+}
+.section-body { padding: 20px; }
+.section-body.tight { padding: 0; }
+
+/* ─── Buttons ─────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all .15s;
+  background: var(--surface-2);
+  color: var(--text);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.btn:hover:not(:disabled) { background: var(--surface-3); border-color: var(--border-strong); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn svg { width: 14px; height: 14px; }
+
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 1px 3px rgba(99,102,241,.3);
+}
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+.btn-outline:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent); }
+
+.btn-ghost { background: transparent; border-color: transparent; color: var(--text-muted); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+
+.btn-danger {
+  background: var(--error);
+  color: #fff;
+  border-color: var(--error);
+}
+.btn-danger:hover:not(:disabled) { background: #dc2626; border-color: #dc2626; }
+
+.btn-success {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+.btn-success:hover:not(:disabled) { background: #16a34a; border-color: #16a34a; }
+
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; }
+.btn-icon { padding: 7px; }
+
+.btn-group { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+
+/* ─── Switch ──────────────────────────────────── */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch-slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 22px; transition: .18s;
+}
+.switch-slider::before {
+  content: ''; position: absolute; height: 16px; width: 16px;
+  left: 2px; bottom: 2px; background: var(--text);
+  border-radius: 50%; transition: .18s;
+}
+.switch input:checked + .switch-slider {
+  background: var(--accent); border-color: var(--accent);
+}
+.switch input:checked + .switch-slider::before { transform: translateX(18px); background: #fff; }
+
+/* ─── Form Controls ───────────────────────────── */
+.input, .select, .textarea {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: var(--font);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  outline: none;
+  transition: all .15s;
+  line-height: 1.35;
+}
+.input:hover, .select:hover, .textarea:hover { border-color: var(--border-strong); }
+.input:focus, .select:focus, .textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.input::placeholder, .textarea::placeholder { color: var(--text-dim); }
+
+.select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+.select option { background: var(--surface); color: var(--text); }
+
+.field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
+.field-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.field-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+.field-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  align-items: end;
+}
+.field-row-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+/* Input group (prefix + input) */
+.input-group { display: flex; gap: 6px; align-items: stretch; }
+.input-group .input { flex: 1; }
+
+/* Switch / Checkbox */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+  user-select: none;
+}
+.checkbox input { position: absolute; opacity: 0; pointer-events: none; }
+.checkbox .box {
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elev);
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.checkbox input:checked + .box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.checkbox input:checked + .box::after {
+  content: '';
+  width: 4px; height: 8px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) translateY(-1px);
+}
+.checkbox:hover .box { border-color: var(--accent); }
+
+/* Tab-style radio group */
+.segmented {
+  display: inline-flex;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 2px;
+}
+.segmented label {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all .15s;
+  position: relative;
+}
+.segmented label input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented label:hover { color: var(--text); }
+.segmented label:has(input:checked) {
+  background: var(--surface-3);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+
+/* ─── Tables ──────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  text-align: left;
+  padding: 11px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background .1s; }
+tbody tr:hover td { background: var(--surface-2); }
+.empty-row td {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 32px 16px;
+  font-style: italic;
+}
+
+/* ─── Badges ──────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  border: 1px solid transparent;
+}
+.badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge.active, .badge.running, .badge.success {
+  background: var(--success-soft);
+  color: var(--success);
+}
+.badge.error, .badge.stopped {
+  background: var(--error-soft);
+  color: var(--error);
+}
+.badge.disabled, .badge.muted {
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+.badge.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.badge.info, .badge.pro {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.badge.no-dot::before { display: none; }
+
+/* Tier pill */
+.tier {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.tier.pro { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+.tier.free { background: var(--info-soft); color: var(--info); }
+.tier.expired { background: var(--error-soft); color: var(--error); }
+.tier.unknown { background: var(--surface-3); color: var(--text-muted); }
+
+/* ─── LS Pool Cards ───────────────────────────── */
+.ls-pool {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.ls-inst {
+  padding: 14px 16px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+.ls-inst .ls-key {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.ls-inst .ls-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+}
+.ls-inst .ls-dot.pending { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+.ls-inst .ls-meta { color: var(--text-dim); font-family: var(--mono); font-size: 11px; margin-top: 2px; }
+
+/* ─── Model Chips ─────────────────────────────── */
+.model-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all .15s;
+  font-weight: 500;
+}
+.model-chip:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.model-chip.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.model-chip .remove {
+  color: var(--error);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.provider-group { margin-bottom: 16px; }
+.provider-label {
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+/* ─── Log Viewer ──────────────────────────────── */
+.log-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  height: 520px;
+  overflow-y: auto;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.log-entry {
+  padding: 3px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.02);
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  word-break: break-all;
+}
+.log-entry:hover { background: var(--surface-2); }
+.log-entry .ts { color: var(--text-dim); flex-shrink: 0; }
+.log-entry .lvl {
+  font-weight: 700;
+  flex-shrink: 0;
+  width: 50px;
+}
+.log-entry.debug .lvl { color: var(--text-dim); }
+.log-entry.info .lvl { color: var(--info); }
+.log-entry.warn .lvl { color: var(--warn); }
+.log-entry.error .lvl { color: var(--error); }
+.log-entry.error { background: rgba(239,68,68,.03); }
+
+.log-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.log-controls .input, .log-controls .select { width: auto; }
+.log-controls .search { flex: 1; min-width: 200px; }
+
+/* ─── Chart ───────────────────────────────────── */
+.chart {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+}
+.chart h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; }
+.bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 140px;
+}
+.bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  justify-content: flex-end;
+  position: relative;
+}
+.bar {
+  width: 100%;
+  min-width: 6px;
+  background: linear-gradient(to top, var(--accent), var(--accent-hover));
+  border-radius: 3px 3px 0 0;
+  transition: height .4s cubic-bezier(.4,0,.2,1);
+}
+.bar.has-errors {
+  background: linear-gradient(to top, var(--error), var(--accent));
+}
+.bar-wrap:hover .bar { filter: brightness(1.2); }
+.bar-label {
+  font-size: 9px;
+  color: var(--text-dim);
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+
+/* ─── Toast ───────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  animation: slideIn .25s ease;
+  pointer-events: auto;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--error); }
+.toast.info { border-left: 3px solid var(--info); }
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ─── Modal ───────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fadeIn .15s ease;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  width: 90%;
+  max-width: 440px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: modalIn .2s cubic-bezier(.16,1,.3,1);
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(-10px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.modal-header {
+  padding: 20px 24px 12px;
+}
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-desc { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.modal-body { padding: 12px 24px 20px; }
+.modal-footer {
+  padding: 14px 24px;
+  background: var(--surface-2);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+}
+
+/* ─── Login Overlay ───────────────────────────── */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(99,102,241,.08) 0%, var(--bg) 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.login-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 32px;
+  width: 380px;
+  box-shadow: var(--shadow-lg);
+}
+.login-box .login-logo {
+  width: 56px; height: 56px;
+  margin: 0 auto 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 22px; color: #fff;
+  box-shadow: 0 10px 30px rgba(99,102,241,.35);
+}
+.login-box h3 { text-align: center; font-size: 18px; margin-bottom: 8px; }
+.login-box p { text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 22px; }
+.login-box .input { margin-bottom: 14px; }
+.login-box .btn { width: 100%; padding: 11px; font-weight: 600; }
+
+/* ─── Spinner ─────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Capability Markers ──────────────────────── */
+.cap-list { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.cap-item {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-family: var(--mono);
+  font-weight: 600;
+}
+.cap-item.ok { background: var(--success-soft); color: var(--success); }
+.cap-item.fail { background: var(--error-soft); color: var(--error); text-decoration: line-through; }
+
+/* ─── Utilities ───────────────────────────────── */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+.mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.text-muted { color: var(--text-muted); }
+.text-dim { color: var(--text-dim); }
+.text-sm { font-size: 12px; }
+.text-xs { font-size: 11px; }
+.nowrap { white-space: nowrap; }
+.hidden { display: none !important; }
+.break-all { word-break: break-all; }
+
+/* ─── Responsive ──────────────────────────────── */
+@media (max-width: 900px) {
+  .sidebar { width: 60px; }
+  .sidebar .brand-name, .sidebar .brand-sub, .sidebar nav a span, .sidebar .footer .ver, .sidebar .nav-group-label { display: none; }
+  .sidebar .brand { justify-content: center; padding: 20px 0; }
+  .sidebar nav a { justify-content: center; padding: 10px; }
+  .main { margin-left: 60px; padding: 20px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ════════ Sidebar ════════ -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-logo">W</div>
+    <div>
+      <div class="brand-name">WindsurfAPI <span style="font-size:10px;opacity:.6;vertical-align:top;margin-left:2px">bydwgx1337</span></div>
+      <div class="brand-sub">管理控制台</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-group">
+      <div class="nav-group-label">概览</div>
+      <a href="#overview" class="active" data-panel="overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>仪表盘</span>
+      </a>
+      <a href="#stats" data-panel="stats">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>统计分析</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">账号</div>
+      <a href="#windsurf-login" data-panel="windsurf-login">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        <span>登录取号</span>
+      </a>
+      <a href="#accounts" data-panel="accounts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>账号管理</span>
+      </a>
+      <a href="#bans" data-panel="bans">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>异常监测</span>
+      </a>
+    </div>
+    <div class="nav-group">
+      <div class="nav-group-label">系统</div>
+      <a href="#models" data-panel="models">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        <span>模型控制</span>
+      </a>
+      <a href="#proxy" data-panel="proxy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+        <span>代理配置</span>
+      </a>
+      <a href="#logs" data-panel="logs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>运行日志</span>
+      </a>
+      <a href="#experimental" data-panel="experimental">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"/><path d="M14 9.3V2"/><path d="M8.5 2h7"/><path d="M14 9.3a6.5 6.5 0 1 1-4 0"/></svg>
+        <span>实验性功能</span>
+      </a>
+    </div>
+  </nav>
+  <div class="footer">
+    <span>© Windsurf</span>
+    <span class="ver">v1.1.0</span>
+  </div>
+</aside>
+
+<!-- ════════ Main ════════ -->
+<main class="main">
+  <!-- Overview -->
+  <section class="panel active" id="p-overview">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">仪表盘</h1>
+        <div class="page-subtitle">系统运行状态与关键指标概览</div>
+      </div>
+    </div>
+    <div class="metrics-grid" id="overview-cards"></div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Language Server</div>
+          <div class="section-desc">语言服务器实例状态</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="App.restartLs()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          重启
+        </button>
+      </div>
+      <div class="section-body">
+        <div id="ls-status"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Windsurf Login -->
+  <section class="panel" id="p-windsurf-login">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">登录取号</h1>
+        <div class="page-subtitle">使用账号密码登录 Windsurf 获取 API Key 并加入账号池</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">账号凭据</div>
+          <div class="section-desc">每次登录使用随机浏览器指纹</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">邮箱</label>
+            <input id="wl-email" class="input" placeholder="your-email@example.com" autocomplete="off">
+          </div>
+          <div class="field">
+            <label class="field-label">密码</label>
+            <input id="wl-password" class="input" type="password" placeholder="••••••••" autocomplete="off" onkeydown="if(event.key==='Enter')App.windsurfLogin()">
+          </div>
+        </div>
+        <div class="field-row-actions">
+          <button class="btn btn-primary" onclick="App.windsurfLogin()" id="wl-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            登录
+          </button>
+          <label class="checkbox" style="margin-left:auto">
+            <input type="checkbox" id="wl-auto-add" checked>
+            <span class="box"></span>
+            <span>登录成功自动加入账号池</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="wl-proxy-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">登录代理（可选）</div>
+          <div class="section-desc">为本次登录指定代理；留空则使用全局代理设置</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">类型</label>
+            <select id="wl-proxy-type" class="select">
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks5">SOCKS5</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">主机</label>
+            <input id="wl-proxy-host" class="input" placeholder="留空=使用全局">
+          </div>
+          <div class="field">
+            <label class="field-label">端口</label>
+            <input id="wl-proxy-port" class="input" placeholder="8080" type="number">
+          </div>
+          <div class="field">
+            <label class="field-label">用户名</label>
+            <input id="wl-proxy-user" class="input" placeholder="可选">
+          </div>
+          <div class="field">
+            <label class="field-label">密码</label>
+            <input id="wl-proxy-pass" class="input" type="password" placeholder="可选">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section hidden" id="wl-result"></div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">登录历史</div>
+          <div class="section-desc">本地记录最近 50 条登录操作</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table id="wl-history-table">
+            <thead><tr><th>时间</th><th>邮箱</th><th>状态</th><th>代理</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accounts -->
+  <section class="panel" id="p-accounts">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">账号管理</h1>
+        <div class="page-subtitle">维护账号池，探测各账号订阅层级与可用模型</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-outline" onclick="App.refreshAllCredits()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6.24-2.52L3 21"/><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6.24 2.52L21 3"/><path d="M21 3v6h-6"/><path d="M3 21v-6h6"/></svg>
+          刷新余额
+        </button>
+        <button class="btn btn-outline" onclick="App.probeAll()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          全部探测
+        </button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">添加账号</div>
+          <div class="section-desc">支持 API Key 或 Auth Token 两种方式</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field" style="max-width:180px">
+            <label class="field-label">类型</label>
+            <select id="acc-type" class="select">
+              <option value="api_key">API Key</option>
+              <option value="token">Auth Token</option>
+            </select>
+          </div>
+          <div class="field" style="flex:2">
+            <label class="field-label">Key / Token</label>
+            <input id="acc-key" class="input" placeholder="粘贴 API Key 或 Auth Token...">
+          </div>
+          <div class="field" style="max-width:200px">
+            <label class="field-label">标签</label>
+            <input id="acc-label" class="input" placeholder="可选">
+          </div>
+        </div>
+        <div class="field-row-actions">
+          <button class="btn btn-primary" onclick="App.addAccount()">添加账号</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ls-pool-card"></div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">账号列表</div>
+          <div class="section-desc">点击探测按钮可单独更新某个账号的能力信息</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table id="accounts-table">
+            <thead><tr><th>ID</th><th>标签</th><th>层级</th><th>RPM</th><th>余额</th><th>可用模型</th><th>状态</th><th>错误</th><th>最后使用</th><th>Key</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Models -->
+  <section class="panel" id="p-models">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">模型控制</h1>
+        <div class="page-subtitle">配置模型访问策略，限制可用模型范围</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">访问策略</div>
+          <div class="section-desc">选择"全部允许"不限制；"白名单"只允许列出的模型；"黑名单"屏蔽列出的模型</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="segmented" id="model-mode-group">
+          <label><input type="radio" name="model-mode" value="all" onchange="App.setModelMode(this.value)">全部允许</label>
+          <label><input type="radio" name="model-mode" value="allowlist" onchange="App.setModelMode(this.value)">白名单</label>
+          <label><input type="radio" name="model-mode" value="blocklist" onchange="App.setModelMode(this.value)">黑名单</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="section hidden" id="model-list-section">
+      <div class="section-header">
+        <div>
+          <div class="section-title" id="model-list-title">模型清单</div>
+          <div class="section-desc" id="model-list-hint"></div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">搜索模型</label>
+            <input id="model-search" class="input" placeholder="输入模型名称筛选..." oninput="App.filterModels()">
+          </div>
+          <div class="field" style="max-width:220px">
+            <label class="field-label">供应商</label>
+            <select id="model-provider-filter" class="select" onchange="App.filterModels()">
+              <option value="">全部供应商</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="openai">OpenAI</option>
+              <option value="google">Google</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="xai">xAI</option>
+              <option value="alibaba">Alibaba</option>
+              <option value="moonshot">Moonshot</option>
+              <option value="windsurf">Windsurf</option>
+            </select>
+          </div>
+        </div>
+        <div id="model-list-current" class="mt-4"></div>
+        <div id="model-chips-container" class="mt-4"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Proxy -->
+  <section class="panel" id="p-proxy">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">代理配置</h1>
+        <div class="page-subtitle">全局或按账号配置出口代理，独立代理将启动独立的语言服务器实例</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">全局代理</div>
+          <div class="section-desc">未配置独立代理的账号将使用此配置</div>
+        </div>
+      </div>
+      <div class="section-body">
+        <div class="field-row">
+          <div class="field" style="max-width:140px">
+            <label class="field-label">类型</label>
+            <select id="proxy-type" class="select">
+              <option value="http">HTTP</option>
+              <option value="https">HTTPS</option>
+              <option value="socks5">SOCKS5</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">主机</label>
+            <input id="proxy-host" class="input" placeholder="proxy.example.com">
+          </div>
+          <div class="field" style="max-width:140px">
+            <label class="field-label">端口</label>
+            <input id="proxy-port" class="input" type="number" placeholder="8080">
+          </div>
+        </div>
+        <div class="field-row mt-3">
+          <div class="field">
+            <label class="field-label">用户名</label>
+            <input id="proxy-user" class="input" placeholder="代理认证用户名">
+          </div>
+          <div class="field">
+            <label class="field-label">密码</label>
+            <div class="input-group">
+              <input id="proxy-pass" class="input" type="password" placeholder="代理认证密码">
+              <button class="btn btn-outline btn-icon" onclick="const el=document.getElementById('proxy-pass');el.type=el.type==='password'?'text':'password'" title="显示/隐藏">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="field-row-actions">
+          <button class="btn btn-primary" onclick="App.saveGlobalProxy()">保存</button>
+          <button class="btn btn-outline" onclick="App.clearGlobalProxy()">清除</button>
+          <span id="proxy-current" class="text-sm text-muted" style="margin-left:auto;align-self:center"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div>
+          <div class="section-title">账号独立代理</div>
+          <div class="section-desc">为特定账号设置专属代理；每个独立代理会启动独立 LS 实例</div>
+        </div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table id="proxy-accounts-table">
+            <thead><tr><th>账号</th><th>代理</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Logs -->
+  <section class="panel" id="p-logs">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">运行日志</h1>
+        <div class="page-subtitle">通过 SSE 实时流式接收服务端日志</div>
+      </div>
+    </div>
+    <div class="log-controls">
+      <select id="log-level" class="select" style="width:130px" onchange="App.filterLogs()">
+        <option value="">所有级别</option>
+        <option value="debug">Debug</option>
+        <option value="info">Info</option>
+        <option value="warn">Warn</option>
+        <option value="error">Error</option>
+      </select>
+      <input id="log-search" class="input search" placeholder="搜索日志内容..." oninput="App.debouncedFilterLogs()">
+      <label class="checkbox">
+        <input type="checkbox" id="log-autoscroll" checked>
+        <span class="box"></span>
+        <span>自动滚动</span>
+      </label>
+      <button class="btn btn-outline btn-sm" onclick="App.clearLogView()">清空视图</button>
+    </div>
+    <div class="log-container" id="log-container"></div>
+  </section>
+
+  <!-- Stats -->
+  <section class="panel" id="p-stats">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">统计分析</h1>
+        <div class="page-subtitle">请求量、Token 消耗、Credit 花销与模型使用情况</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="App.exportUsage()">导出历史</button>
+        <button class="btn btn-sm" onclick="document.getElementById('usage-import-file').click()">导入历史</button>
+        <input id="usage-import-file" type="file" accept="application/json" style="display:none" onchange="App.importUsage(event)">
+        <button class="btn btn-danger btn-sm" onclick="App.resetStats()">重置统计</button>
+      </div>
+    </div>
+
+    <div class="metrics-grid" id="stats-cards"></div>
+
+    <div class="chart">
+      <h3>请求量（最近 24 小时，基于日总量 × 小时占比折算）</h3>
+      <div class="bars" id="stats-chart"></div>
+    </div>
+
+    <div class="chart">
+      <h3>Token 消耗（最近 14 天）</h3>
+      <div class="bars" id="usage-daily-chart"></div>
+    </div>
+
+    <div class="chart">
+      <h3>小时分布（0-23 时段，跨天合计）</h3>
+      <div class="bars" id="usage-hourly-chart"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">模型使用统计</div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table id="model-stats-table">
+            <thead><tr>
+              <th>模型</th><th>请求</th><th>成功</th><th>错误</th><th>成功率</th>
+              <th>平均耗时</th><th>输入 Tokens</th><th>输出 Tokens</th><th>缓存命中</th>
+              <th>Credits</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">最近请求明细（每模型保留最近 500 条）</div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table id="usage-details-table">
+            <thead><tr>
+              <th>时间</th><th>API</th><th>模型</th><th>账号</th>
+              <th>耗时</th><th>输入</th><th>输出</th><th>缓存</th><th>Credit</th><th>状态</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bans -->
+  <section class="panel" id="p-bans">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">异常监测</h1>
+        <div class="page-subtitle">追踪错误账号和异常状态</div>
+      </div>
+    </div>
+    <div class="metrics-grid" id="ban-cards"></div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">账号健康状况</div>
+      </div>
+      <div class="section-body tight">
+        <div class="table-wrap">
+          <table id="ban-table">
+            <thead><tr><th>账号</th><th>状态</th><th>错误数</th><th>最后使用</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-experimental">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">实验性功能</h1>
+        <div class="page-subtitle">尚未稳定的优化项；如果发现异常可以随时关闭</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header">
+        <div class="section-title">Cascade 对话复用</div>
+      </div>
+      <div class="section-body">
+        <div class="section-desc" style="margin-bottom:12px">
+          多轮对话时复用同一个 <code>cascade_id</code>，只把最新一条 user 消息发给 Windsurf，
+          让服务端维持上下文缓存。命中时可显著降低 TTFB 与上传体积；未命中或账号/LS 变更会自动回退到新会话。
+          需要客户端保留完整历史并按顺序追加（如 new-api、OpenWebUI）。
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+          <label class="switch">
+            <input type="checkbox" id="exp-cascade-reuse" onchange="App.toggleExperimental('cascadeConversationReuse', this.checked)">
+            <span class="switch-slider"></span>
+          </label>
+          <div>
+            <div style="font-weight:500">启用 Cascade 对话复用</div>
+            <div class="text-sm text-muted">默认关闭。开启后对当前对话池立即生效。</div>
+          </div>
+        </div>
+        <div class="metrics-grid" id="exp-pool-cards"></div>
+        <div style="margin-top:12px">
+          <button class="btn btn-outline btn-sm" onclick="App.clearConversationPool()">清空对话池</button>
+          <button class="btn btn-ghost btn-sm" onclick="App.loadExperimental()">刷新</button>
+        </div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:24px">
+      <div class="section-header">
+        <div class="section-title">模型身份注入</div>
+      </div>
+      <div class="section-body">
+        <div class="section-desc" style="margin-bottom:12px">
+          开启后，在每个请求的上下文中注入一条系统提示词，让模型以请求的身份自称
+          （例如请求 <code>claude-opus-4.6</code> 时，模型会说自己是 Claude Opus 4.6，由 Anthropic 开发）。
+          覆盖 Cascade 内置的 Windsurf 身份。
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+          <label class="switch">
+            <input type="checkbox" id="exp-identity-prompt" onchange="App.toggleExperimental('modelIdentityPrompt', this.checked)">
+            <span class="switch-slider"></span>
+          </label>
+          <div>
+            <div style="font-weight:500">启用模型身份注入</div>
+            <div class="text-sm text-muted">默认开启。支持 Anthropic / OpenAI / Google / DeepSeek / xAI 等厂商模型。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Login Overlay -->
+<div class="login-overlay hidden" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">W</div>
+    <h3>控制台登录</h3>
+    <p>请输入管理密码以继续</p>
+    <input type="password" id="login-password" class="input" placeholder="Dashboard 密码" onkeydown="if(event.key==='Enter')App.login()">
+    <button class="btn btn-primary" onclick="App.login()">登 录</button>
+  </div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container"></div>
+
+<!-- Toast Container -->
+<div class="toast-stack" id="toast-stack"></div>
+
+<script>
+const App = {
+  password: localStorage.getItem('dp') || '',
+  sseConn: null,
+  logEntries: [],
+  pollers: {},
+  allModels: [],
+  modelAccessConfig: { mode: 'all', list: [] },
+  loginHistory: JSON.parse(localStorage.getItem('wl_history') || '[]'),
+  _filterTimer: null,
+
+  // Register a polling loader. Guarantees exactly one timer per key even if
+  // the loader is invoked repeatedly, and auto-pauses while the tab is
+  // hidden to avoid hammering the server in background tabs.
+  poll(key, fn, intervalMs) {
+    if (this.pollers[key]) clearInterval(this.pollers[key]);
+    this.pollers[key] = setInterval(() => {
+      if (document.hidden) return;
+      fn();
+    }, intervalMs);
+  },
+
+  async init() {
+    const auth = await this.api('GET', '/auth');
+    if (auth.required && !auth.valid) {
+      document.getElementById('login-overlay').classList.remove('hidden');
+      return;
+    }
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.querySelectorAll('.sidebar nav a').forEach(a => {
+      a.onclick = (e) => { e.preventDefault(); this.navigate(a.dataset.panel); };
+    });
+    const hash = location.hash.slice(1);
+    if (hash) this.navigate(hash);
+    else this.loadOverview();
+  },
+
+  login() {
+    this.password = document.getElementById('login-password').value;
+    localStorage.setItem('dp', this.password);
+    this.init();
+  },
+
+  navigate(panel) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+    const el = document.getElementById('p-' + panel);
+    const nav = document.querySelector(`[data-panel="${panel}"]`);
+    if (el) el.classList.add('active');
+    if (nav) nav.classList.add('active');
+    location.hash = panel;
+
+    Object.values(this.pollers).forEach(clearInterval);
+    this.pollers = {};
+    if (this.sseConn) { this.sseConn.close(); this.sseConn = null; }
+
+    const loaders = {
+      overview: 'loadOverview', 'windsurf-login': 'loadWindsurfLogin',
+      accounts: 'loadAccounts', models: 'loadModels', proxy: 'loadProxy',
+      logs: 'loadLogs', stats: 'loadStats', bans: 'loadBans',
+      experimental: 'loadExperimental',
+    };
+    if (loaders[panel]) this[loaders[panel]]();
+  },
+
+  async api(method, path, body) {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (this.password) opts.headers['X-Dashboard-Password'] = this.password;
+    if (body) opts.body = JSON.stringify(body);
+    try {
+      const r = await fetch('/dashboard/api' + path, opts);
+      const data = await r.json();
+      if (r.status === 401) {
+        document.getElementById('login-overlay').classList.remove('hidden');
+        return {};
+      }
+      return data;
+    } catch (e) { this.toast(e.message, 'error'); return {}; }
+  },
+
+  toast(msg, type = 'success') {
+    const t = document.createElement('div');
+    t.className = 'toast ' + type;
+    t.textContent = msg;
+    document.getElementById('toast-stack').appendChild(t);
+    setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(20px)';
+      t.style.transition = 'all .2s';
+      setTimeout(() => t.remove(), 200);
+    }, 3000);
+  },
+
+  // ─── Modal helpers ───────────────────────────
+  confirm(title, desc, opts = {}) {
+    return new Promise(resolve => {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal-overlay';
+      // opts.html=true lets callers pass rich markup in `desc` (e.g. the
+      // per-account blocked-models editor). opts.wide=true widens the modal
+      // so the 2-col model grid has room to breathe.
+      const descHtml = desc
+        ? (opts.html
+          ? `<div class="modal-body">${desc}</div>`
+          : `<div class="modal-desc">${this.esc(desc)}</div>`)
+        : '';
+      const widthStyle = opts.wide ? ' style="max-width:640px;width:92vw"' : '';
+      // Title is trusted caller input but may contain <code>/<b>; use esc by
+      // default to match prior behaviour.
+      wrap.innerHTML = `
+        <div class="modal"${widthStyle}>
+          <div class="modal-header">
+            <div class="modal-title">${opts.titleHtml ? title : this.esc(title)}</div>
+            ${opts.html ? '' : (desc ? `<div class="modal-desc">${this.esc(desc)}</div>` : '')}
+          </div>
+          ${opts.html ? descHtml : ''}
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-act="cancel">${this.esc(opts.cancelText || '取消')}</button>
+            <button class="btn ${opts.danger ? 'btn-danger' : 'btn-primary'}" data-act="ok">${this.esc(opts.okText || '确认')}</button>
+          </div>
+        </div>`;
+      document.getElementById('modal-container').appendChild(wrap);
+      const close = (v) => { wrap.remove(); resolve(v); };
+      wrap.querySelector('[data-act=cancel]').onclick = () => close(false);
+      wrap.querySelector('[data-act=ok]').onclick = () => close(true);
+      wrap.onclick = (e) => { if (e.target === wrap) close(false); };
+    });
+  },
+
+  prompt(title, desc, fields) {
+    return new Promise(resolve => {
+      const wrap = document.createElement('div');
+      wrap.className = 'modal-overlay';
+      const fieldHtml = fields.map(f => `
+        <div class="field mt-3">
+          <label class="field-label">${this.esc(f.label)}</label>
+          ${f.type === 'select' ? `
+            <select class="select" data-name="${f.name}">
+              ${f.options.map(o => `<option value="${this.esc(o.value)}" ${o.value === f.value ? 'selected' : ''}>${this.esc(o.label)}</option>`).join('')}
+            </select>
+          ` : `
+            <input class="input" data-name="${f.name}" type="${f.type || 'text'}" placeholder="${this.esc(f.placeholder || '')}" value="${this.esc(f.value || '')}">
+          `}
+          ${f.hint ? `<div class="field-hint">${this.esc(f.hint)}</div>` : ''}
+        </div>
+      `).join('');
+      wrap.innerHTML = `
+        <div class="modal">
+          <div class="modal-header">
+            <div class="modal-title">${this.esc(title)}</div>
+            ${desc ? `<div class="modal-desc">${this.esc(desc)}</div>` : ''}
+          </div>
+          <div class="modal-body">${fieldHtml}</div>
+          <div class="modal-footer">
+            <button class="btn btn-ghost" data-act="cancel">取消</button>
+            <button class="btn btn-primary" data-act="ok">确认</button>
+          </div>
+        </div>`;
+      document.getElementById('modal-container').appendChild(wrap);
+      const close = (v) => { wrap.remove(); resolve(v); };
+      wrap.querySelector('[data-act=cancel]').onclick = () => close(null);
+      wrap.querySelector('[data-act=ok]').onclick = () => {
+        const values = {};
+        wrap.querySelectorAll('[data-name]').forEach(el => values[el.dataset.name] = el.value);
+        close(values);
+      };
+      wrap.onclick = (e) => { if (e.target === wrap) close(null); };
+      setTimeout(() => wrap.querySelector('input, select')?.focus(), 100);
+    });
+  },
+
+  // ─── Overview ────────────────────────────────
+  async loadOverview() {
+    const d = await this.api('GET', '/overview');
+    const uptime = d.uptime ? this.fmtDuration(d.uptime) : '-';
+    const ls = d.langServer || {};
+    const poolCount = (ls.instances || []).length || (ls.running ? 1 : 0);
+    document.getElementById('overview-cards').innerHTML = `
+      <div class="card success">
+        <div class="card-header"><div class="card-title">活跃账号</div>
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </div>
+        <div class="card-value">${d.accounts?.active || 0}</div>
+        <div class="card-sub">${d.accounts?.total || 0} 个总账号 · ${d.accounts?.error || 0} 异常</div>
+      </div>
+      <div class="card info">
+        <div class="card-header"><div class="card-title">总请求数</div>
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </div>
+        <div class="card-value">${d.totalRequests || 0}</div>
+        <div class="card-sub">成功率 ${d.successRate || 0}%</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">运行时间</div>
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="card-value" style="font-size:20px">${uptime}</div>
+        <div class="card-sub">启动于 ${d.startedAt ? new Date(d.startedAt).toLocaleString() : '-'}</div>
+      </div>
+      <div class="card ${ls.running ? 'success' : 'error'}">
+        <div class="card-header"><div class="card-title">Language Server</div>
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+        </div>
+        <div class="card-value" style="font-size:20px">${ls.running ? '运行中' : '已停止'}</div>
+        <div class="card-sub">${poolCount} 个实例 · 端口 ${ls.port || '-'}</div>
+      </div>
+      <div class="card info">
+        <div class="card-header"><div class="card-title">响应缓存</div>
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+        </div>
+        <div class="card-value">${d.cache?.hitRate || '0.0'}%</div>
+        <div class="card-sub">${d.cache?.hits || 0} 命中 / ${d.cache?.misses || 0} 未命中 · ${d.cache?.size || 0}/${d.cache?.maxSize || 0} 条</div>
+      </div>
+    `;
+    const instances = ls.instances || [];
+    if (instances.length > 0) {
+      document.getElementById('ls-status').innerHTML = `
+        <div class="ls-pool">
+          ${instances.map(i => `
+            <div class="ls-inst">
+              <div class="ls-key">
+                <span class="ls-dot ${i.ready ? '' : 'pending'}"></span>
+                ${this.esc(i.key === 'default' ? '默认实例' : i.key.replace(/^px_/, ''))}
+              </div>
+              <div class="ls-meta">端口 ${i.port} · PID ${i.pid || '-'}</div>
+              <div class="ls-meta">${this.esc(i.proxy || '无代理')}</div>
+            </div>
+          `).join('')}
+        </div>`;
+    } else {
+      document.getElementById('ls-status').innerHTML = `
+        <span class="badge ${ls.running ? 'running' : 'stopped'}">${ls.running ? '运行中' : '已停止'}</span>
+        <span class="text-sm text-muted" style="margin-left:12px">PID ${ls.pid || '-'} · 端口 ${ls.port || '-'} · 重启 ${ls.restartCount || 0} 次</span>
+      `;
+    }
+    this.poll('overview', () => this.loadOverview(), 15000);
+  },
+
+  async restartLs() {
+    const ok = await this.confirm('重启 Language Server', '进行中的请求将会失败，确定要继续吗？', { danger: true, okText: '重启' });
+    if (!ok) return;
+    await this.api('POST', '/langserver/restart', { confirm: true });
+    this.toast('Language Server 重启中...', 'info');
+  },
+
+  // ─── Windsurf Login ──────────────────────────
+  loadWindsurfLogin() { this.renderLoginHistory(); },
+
+  async windsurfLogin() {
+    const email = document.getElementById('wl-email').value.trim();
+    const password = document.getElementById('wl-password').value.trim();
+    if (!email || !password) return this.toast('请输入邮箱和密码', 'error');
+
+    const proxyHost = document.getElementById('wl-proxy-host').value.trim();
+    const proxy = proxyHost ? {
+      type: document.getElementById('wl-proxy-type').value,
+      host: proxyHost,
+      port: parseInt(document.getElementById('wl-proxy-port').value) || 8080,
+      username: document.getElementById('wl-proxy-user').value,
+      password: document.getElementById('wl-proxy-pass').value,
+    } : null;
+    const autoAdd = document.getElementById('wl-auto-add').checked;
+
+    const btn = document.getElementById('wl-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> 登录中...';
+
+    const entry = { time: new Date().toISOString(), email, proxy: proxy ? `${proxy.type}://${proxy.host}:${proxy.port}` : '全局', status: 'pending' };
+
+    try {
+      const r = await this.api('POST', '/windsurf-login', { email, password, proxy, autoAdd });
+      if (r.success) {
+        entry.status = 'success';
+        entry.apiKey = r.apiKey?.slice(0, 16) + '...';
+        const rd = document.getElementById('wl-result');
+        rd.classList.remove('hidden');
+        rd.innerHTML = `
+          <div class="section-header">
+            <div>
+              <div class="section-title" style="color:var(--success)">✓ 登录成功</div>
+              <div class="section-desc">API Key 已生成${autoAdd ? '并加入账号池' : ''}</div>
+            </div>
+          </div>
+          <div class="section-body">
+            <table style="background:transparent">
+              <tr><td style="color:var(--text-muted);width:120px">邮箱</td><td>${this.esc(r.email)}</td></tr>
+              <tr><td style="color:var(--text-muted)">姓名</td><td>${this.esc(r.name || '-')}</td></tr>
+              <tr><td style="color:var(--text-muted)">API Key</td><td><code class="break-all">${this.esc(r.apiKey)}</code></td></tr>
+              ${r.account ? `<tr><td style="color:var(--text-muted)">账号 ID</td><td><code>${r.account.id}</code> <span class="badge active">${r.account.status}</span></td></tr>` : ''}
+            </table>
+          </div>`;
+        this.toast('登录成功，账号已加入');
+      } else {
+        entry.status = 'error: ' + (r.error || 'unknown');
+        const rd = document.getElementById('wl-result');
+        rd.classList.remove('hidden');
+        rd.innerHTML = `
+          <div class="section-header">
+            <div>
+              <div class="section-title" style="color:var(--error)">✗ 登录失败</div>
+            </div>
+          </div>
+          <div class="section-body"><p class="text-sm">${this.esc(r.error || '未知错误')}</p></div>`;
+        this.toast(r.error || '登录失败', 'error');
+      }
+    } catch (err) {
+      entry.status = 'error: ' + err.message;
+      this.toast(err.message, 'error');
+    }
+
+    this.loginHistory.unshift(entry);
+    if (this.loginHistory.length > 50) this.loginHistory.length = 50;
+    localStorage.setItem('wl_history', JSON.stringify(this.loginHistory));
+    this.renderLoginHistory();
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> 登录';
+  },
+
+  renderLoginHistory() {
+    const tbody = document.querySelector('#wl-history-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = this.loginHistory.map((h, i) => {
+      const ok = h.status === 'success';
+      return `<tr>
+        <td class="text-sm nowrap">${new Date(h.time).toLocaleString()}</td>
+        <td>${this.esc(h.email)}</td>
+        <td>
+          <span class="badge ${ok ? 'active' : 'error'}">${ok ? '成功' : '失败'}</span>
+          ${!ok ? `<div class="text-xs" style="color:var(--error);margin-top:3px;max-width:240px;overflow:hidden;text-overflow:ellipsis">${this.esc((h.status||'').replace('error: ',''))}</div>` : ''}
+        </td>
+        <td class="text-sm">${this.esc(h.proxy || '-')}</td>
+        <td><button class="btn btn-ghost btn-xs" onclick="App.removeLoginHistory(${i})">删除</button></td>
+      </tr>`;
+    }).join('') || '<tr class="empty-row"><td colspan="5">暂无登录记录</td></tr>';
+  },
+
+  removeLoginHistory(idx) {
+    this.loginHistory.splice(idx, 1);
+    localStorage.setItem('wl_history', JSON.stringify(this.loginHistory));
+    this.renderLoginHistory();
+  },
+
+  // ─── Accounts ────────────────────────────────
+  async loadAccounts() {
+    const [d, ov] = await Promise.all([
+      this.api('GET', '/accounts'),
+      this.api('GET', '/overview').catch(() => null),
+    ]);
+    const instances = ov?.langServer?.instances || [];
+    const poolCard = document.getElementById('ls-pool-card');
+    if (poolCard) {
+      if (instances.length > 0) {
+        poolCard.innerHTML = `
+          <div class="section">
+            <div class="section-header">
+              <div>
+                <div class="section-title">语言服务器池</div>
+                <div class="section-desc">${instances.length} 个 LS 实例 · 每个独立代理对应一个进程</div>
+              </div>
+            </div>
+            <div class="section-body">
+              <div class="ls-pool">
+                ${instances.map(i => `
+                  <div class="ls-inst">
+                    <div class="ls-key">
+                      <span class="ls-dot ${i.ready ? '' : 'pending'}"></span>
+                      ${this.esc(i.key === 'default' ? '默认实例' : i.key.replace(/^px_/, ''))}
+                    </div>
+                    <div class="ls-meta">端口 ${i.port} · PID ${i.pid || '-'}</div>
+                    <div class="ls-meta">${this.esc(i.proxy || '无代理')}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>`;
+      } else {
+        poolCard.innerHTML = '';
+      }
+    }
+    const tbody = document.querySelector('#accounts-table tbody');
+    const tierLabel = { pro: 'PRO', free: 'FREE', expired: '已过期', unknown: '未知' };
+    tbody.innerHTML = (d.accounts || []).map(a => {
+      const tier = a.tier || 'unknown';
+      // Compact summary: avail/total + 编辑 button. Clicking opens modal.
+      const tierModels = a.tierModels || [];
+      const blockedCount = (a.blockedModels || []).length;
+      const availCount = tierModels.length - blockedCount;
+      const capsHtml = tierModels.length
+        ? `<button class="btn btn-ghost btn-xs" style="min-width:96px" onclick="App.openBlockedModal('${a.id}')" title="编辑该账号可用模型">
+             <span style="color:var(--success,#10b981);font-weight:600">${availCount}</span>
+             <span style="color:var(--text-dim)">/${tierModels.length}</span>
+             ${blockedCount > 0 ? `<span class="badge warn" style="margin-left:4px">-${blockedCount}</span>` : ''}
+           </button>`
+        : `<span class="text-xs text-dim">-</span>`;
+      const rateLimitBadge = a.rateLimited ? ` <span class="badge warn">限流中</span>` : '';
+      const rpmUsed = a.rpmUsed ?? 0;
+      const rpmLimit = a.rpmLimit ?? 0;
+      const rpmPct = rpmLimit > 0 ? Math.min(100, Math.round((rpmUsed / rpmLimit) * 100)) : 0;
+      const rpmColor = rpmPct >= 90 ? 'var(--error)' : rpmPct >= 60 ? 'var(--warn, #f59e0b)' : 'var(--success, #10b981)';
+      const rpmCell = rpmLimit > 0
+        ? `<div style="min-width:90px">
+            <div class="text-xs" style="display:flex;justify-content:space-between;margin-bottom:2px">
+              <span>${rpmUsed}/${rpmLimit}</span><span style="color:${rpmColor}">${rpmPct}%</span>
+            </div>
+            <div style="height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${rpmPct}%;background:${rpmColor};transition:width .3s"></div>
+            </div>
+           </div>`
+        : `<span class="text-xs text-dim">-</span>`;
+
+      // Credit / quota cell — collapses the legacy credit contract and the
+      // newer daily/weekly percent contract into a single progress bar.
+      const cr = a.credits || null;
+      let creditCell;
+      if (!cr) {
+        creditCell = `<span class="text-xs text-dim">尚未获取</span>`;
+      } else if (cr.lastError && cr.percent == null && !cr.prompt?.limit) {
+        creditCell = `<span class="text-xs" style="color:var(--error)" title="${this.esc(cr.lastError)}">获取失败</span>`;
+      } else {
+        const pct = cr.percent != null ? Math.max(0, Math.min(100, cr.percent)) : null;
+        const pctStr = pct != null ? pct.toFixed(0) + '%' : '-';
+        const pctColor = pct == null ? 'var(--text-dim)'
+          : pct <= 10 ? 'var(--error)'
+          : pct <= 30 ? 'var(--warn, #f59e0b)'
+          : 'var(--success, #10b981)';
+        const planName = cr.planName || '-';
+        const fetchedAgo = cr.fetchedAt ? Math.round((Date.now() - cr.fetchedAt) / 60000) + 'm ago' : '-';
+        const tipLines = [
+          `Plan: ${planName}`,
+          cr.dailyPercent != null ? `Daily:  ${cr.dailyPercent.toFixed(1)}% left` : '',
+          cr.weeklyPercent != null ? `Weekly: ${cr.weeklyPercent.toFixed(1)}% left` : '',
+          cr.prompt?.limit ? `Prompt: ${(cr.prompt.used || 0).toFixed(0)}/${cr.prompt.limit.toFixed(0)}` : '',
+          cr.flex?.limit ? `Flex:   ${(cr.flex.used || 0).toFixed(0)}/${cr.flex.limit.toFixed(0)}` : '',
+          cr.dailyResetAt ? `Daily reset: ${new Date(cr.dailyResetAt * 1000).toLocaleString()}` : '',
+          `Updated: ${fetchedAgo}`,
+          cr.lastError ? `Last error: ${cr.lastError}` : '',
+        ].filter(Boolean).join('\n');
+        creditCell = `<div style="min-width:100px" title="${this.esc(tipLines)}">
+            <div class="text-xs" style="display:flex;justify-content:space-between;margin-bottom:2px">
+              <span>${this.esc(planName.slice(0, 10))}</span><span style="color:${pctColor}">${pctStr}</span>
+            </div>
+            <div style="height:4px;background:var(--surface-3);border-radius:2px;overflow:hidden">
+              <div style="height:100%;width:${pct != null ? pct : 0}%;background:${pctColor};transition:width .3s"></div>
+            </div>
+          </div>`;
+      }
+      return `
+      <tr>
+        <td><code>${a.id}</code></td>
+        <td>${this.esc(a.email)}</td>
+        <td><span class="tier ${tier}">${tierLabel[tier] || tier}</span></td>
+        <td>${rpmCell}</td>
+        <td>${creditCell}</td>
+        <td>${capsHtml}</td>
+        <td><span class="badge ${a.status}">${a.status}</span>${rateLimitBadge}</td>
+        <td style="color:${a.errorCount > 0 ? 'var(--error)' : 'inherit'}">${a.errorCount}</td>
+        <td class="text-sm nowrap">${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</td>
+        <td class="nowrap">
+          <code style="cursor:pointer" title="点击复制" onclick="App.copyKey('${this.esc(a.apiKey)}')">${a.keyPrefix}</code>
+        </td>
+        <td class="nowrap">
+          <div class="btn-group">
+            <button class="btn btn-ghost btn-xs" onclick="App.probeAccount('${a.id}')" title="探测能力">探测</button>
+            <button class="btn btn-ghost btn-xs" onclick="App.refreshCredits('${a.id}')" title="刷新余额">余额</button>
+            ${a.status === 'active'
+              ? `<button class="btn btn-ghost btn-xs" onclick="App.toggleAccount('${a.id}','disabled')">停用</button>`
+              : `<button class="btn btn-success btn-xs" onclick="App.toggleAccount('${a.id}','active')">启用</button>`}
+            <button class="btn btn-ghost btn-xs" onclick="App.resetErrors('${a.id}')">重置</button>
+            <button class="btn btn-ghost btn-xs" style="color:var(--error)" onclick="App.deleteAccount('${a.id}')">删除</button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('') || '<tr class="empty-row"><td colspan="11">暂无账号，请先添加</td></tr>';
+  },
+
+  async refreshCredits(id) {
+    try {
+      const r = await this.api('POST', `/accounts/${id}/refresh-credits`, {});
+      if (r.ok) {
+        this.toast('余额已刷新');
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '刷新失败', 'error');
+      }
+    } catch (e) { this.toast('刷新失败: ' + e.message, 'error'); }
+  },
+
+  async refreshAllCredits() {
+    this.toast('正在刷新所有账号余额...', 'info');
+    try {
+      const r = await this.api('POST', '/accounts/refresh-credits', {});
+      if (r.success) {
+        const okCount = (r.results || []).filter(x => x.ok).length;
+        const failCount = (r.results || []).length - okCount;
+        this.toast(`余额刷新完成：${okCount} 成功 / ${failCount} 失败`);
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '刷新失败', 'error');
+      }
+    } catch (e) { this.toast('刷新失败: ' + e.message, 'error'); }
+  },
+
+  async probeAll() {
+    this.toast('全部探测中，依账号数量约需 1-3 分钟...', 'info');
+    try {
+      const r = await this.api('POST', '/accounts/probe-all', {});
+      if (r.success) {
+        const tierLabel = { pro: 'Pro', free: 'Free', expired: '已过期', unknown: '未知' };
+        const summary = (r.results || []).map(x => `${x.email}: ${tierLabel[x.tier] || x.tier || x.error}`).join('；');
+        this.toast('探测完成：' + summary);
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '探测失败', 'error');
+      }
+    } catch (e) { this.toast('探测失败: ' + e.message, 'error'); }
+  },
+
+  async probeAccount(id) {
+    this.toast('探测中，约需 10-30 秒...', 'info');
+    try {
+      const r = await this.api('POST', `/accounts/${id}/probe`, {});
+      if (r.success) {
+        const tierLabel = { pro: 'Pro', free: 'Free', expired: '已过期', unknown: '未知' };
+        this.toast(`探测完成：${tierLabel[r.tier] || r.tier}`);
+        this.loadAccounts();
+      } else {
+        this.toast(r.error || '探测失败', 'error');
+      }
+    } catch (e) { this.toast('探测失败: ' + e.message, 'error'); }
+  },
+
+  async openBlockedModal(id) {
+    try {
+      const d = await this.api('GET', '/accounts', null);
+      const acct = (d.accounts || []).find(a => a.id === id);
+      if (!acct) return this.toast('账号不存在', 'error');
+      const tierModels = acct.tierModels || [];
+      const blocked = new Set(acct.blockedModels || []);
+      if (!tierModels.length) return this.toast('该账号层级无可用模型', 'info');
+      const providerOf = (m) => {
+        if (m.startsWith('claude')) return 'anthropic';
+        if (m.startsWith('gpt') || m.startsWith('o3') || m.startsWith('o4')) return 'openai';
+        if (m.startsWith('gemini')) return 'google';
+        if (m.startsWith('grok')) return 'xai';
+        if (m.startsWith('deepseek')) return 'deepseek';
+        if (m.startsWith('qwen')) return 'alibaba';
+        if (m.startsWith('kimi')) return 'moonshot';
+        if (m.startsWith('swe') || m.startsWith('arena')) return 'windsurf';
+        return 'other';
+      };
+      const groups = {};
+      for (const m of tierModels) (groups[providerOf(m)] = groups[providerOf(m)] || []).push(m);
+      const total = tierModels.length;
+      const availInit = total - blocked.size;
+      const html = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;padding:8px 10px;background:var(--surface-2);border-radius:6px">
+          <div class="text-xs text-dim">勾选 = 可用；取消 = 对该账号禁用</div>
+          <div style="font-size:13px">
+            已启用 <span id="bm-avail" style="color:var(--success,#10b981);font-weight:600">${availInit}</span>
+            <span style="color:var(--text-dim)"> / ${total}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="btn btn-ghost btn-xs" onclick="App.blockedModalToggleAll(true)">全选</button>
+          <button class="btn btn-ghost btn-xs" onclick="App.blockedModalToggleAll(false)">全不选</button>
+          <button class="btn btn-ghost btn-xs" onclick="App.blockedModalInvert()">反选</button>
+        </div>
+        <div style="max-height:50vh;overflow:auto;padding:2px 2px 2px 0">
+          ${Object.entries(groups).map(([provider, models]) => `
+            <div class="bm-group" data-provider="${provider}" style="margin-bottom:12px;border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border)">
+                <input type="checkbox" class="bm-group-cb" data-provider="${provider}">
+                <span style="text-transform:uppercase;letter-spacing:.5px;font-size:11px;color:var(--text-muted);font-weight:600">${provider}</span>
+                <span class="text-xs text-dim" data-role="count">(${models.filter(m => !blocked.has(m)).length}/${models.length})</span>
+              </label>
+              <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 10px">
+                ${models.map(m => `
+                  <label style="display:flex;align-items:center;gap:6px;padding:3px 4px;border-radius:3px;cursor:pointer;font-size:12px" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">
+                    <input type="checkbox" class="blocked-model-cb" data-model="${this.esc(m)}" data-provider="${provider}" ${blocked.has(m) ? '' : 'checked'}>
+                    <span>${this.esc(m)}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>`;
+      // Fire-and-forget: confirm() drops the modal into the DOM synchronously
+      // so we can wire listeners on the next microtask. We don't await its
+      // Promise — _bindBlockedModal replaces the OK handler with one that
+      // PATCHes and closes itself, so the original resolve() only fires on
+      // Cancel, which we ignore.
+      this.confirm(`编辑可用模型 — ${acct.email}`, html, { okText: '保存', html: true, wide: true });
+      setTimeout(() => this._bindBlockedModal(id), 0);
+    } catch (e) { this.toast('打开失败: ' + e.message, 'error'); }
+  },
+
+  // Bind listeners once the blocked-models modal is mounted.
+  // Listeners live on the modal so they're GC'd when it closes.
+  // `accountId` is passed by the caller so the PATCH target can't drift
+  // if the user opens two modals in quick succession.
+  _bindBlockedModal(accountId) {
+    const root = document.querySelector('.modal-overlay:last-child');
+    if (!root) return;
+    const updateGroup = (provider) => {
+      const group = root.querySelector(`.bm-group[data-provider="${provider}"]`);
+      if (!group) return;
+      const boxes = group.querySelectorAll('.blocked-model-cb');
+      const checked = [...boxes].filter(b => b.checked).length;
+      const groupCb = group.querySelector('.bm-group-cb');
+      groupCb.checked = checked === boxes.length;
+      groupCb.indeterminate = checked > 0 && checked < boxes.length;
+      group.querySelector('[data-role=count]').textContent = `(${checked}/${boxes.length})`;
+    };
+    const updateTotal = () => {
+      const all = root.querySelectorAll('.blocked-model-cb');
+      const checked = [...all].filter(b => b.checked).length;
+      const el = root.querySelector('#bm-avail');
+      if (el) el.textContent = checked;
+    };
+    root.querySelectorAll('.bm-group').forEach(g => updateGroup(g.dataset.provider));
+    updateTotal();
+    root.querySelectorAll('.blocked-model-cb').forEach(cb => {
+      cb.addEventListener('change', () => { updateGroup(cb.dataset.provider); updateTotal(); });
+    });
+    root.querySelectorAll('.bm-group-cb').forEach(gcb => {
+      gcb.addEventListener('change', () => {
+        const provider = gcb.dataset.provider;
+        root.querySelectorAll(`.blocked-model-cb[data-provider="${provider}"]`).forEach(cb => { cb.checked = gcb.checked; });
+        updateGroup(provider);
+        updateTotal();
+      });
+    });
+    // Intercept OK to PATCH, then close. We replace the handler confirm()
+    // installed so the modal stays open on network errors.
+    const okBtn = root.querySelector('[data-act=ok]');
+    const cancelBtn = root.querySelector('[data-act=cancel]');
+    if (!okBtn || okBtn.dataset.bmBound) return;
+    okBtn.dataset.bmBound = '1';
+    const id = accountId;
+    const self = this;
+    okBtn.onclick = async () => {
+      const newBlocked = [];
+      root.querySelectorAll('.blocked-model-cb').forEach(cb => { if (!cb.checked) newBlocked.push(cb.dataset.model); });
+      okBtn.disabled = true; cancelBtn.disabled = true;
+      okBtn.textContent = '保存中...';
+      try {
+        const r = await self.api('PATCH', `/accounts/${id}`, { blockedModels: newBlocked });
+        if (r.success) {
+          self.toast(`已保存：启用 ${root.querySelectorAll('.blocked-model-cb:checked').length} / 禁用 ${newBlocked.length}`, 'success');
+          root.remove();
+          self.loadAccounts();
+        } else {
+          self.toast(r.error || '保存失败', 'error');
+          okBtn.disabled = false; cancelBtn.disabled = false; okBtn.textContent = '保存';
+        }
+      } catch (e) {
+        self.toast('保存失败: ' + e.message, 'error');
+        okBtn.disabled = false; cancelBtn.disabled = false; okBtn.textContent = '保存';
+      }
+    };
+  },
+
+  blockedModalToggleAll(checked) {
+    const root = document.querySelector('.modal-overlay:last-child');
+    if (!root) return;
+    root.querySelectorAll('.blocked-model-cb').forEach(cb => { cb.checked = checked; });
+    root.querySelectorAll('.blocked-model-cb').forEach(cb => cb.dispatchEvent(new Event('change')));
+  },
+
+  blockedModalInvert() {
+    const root = document.querySelector('.modal-overlay:last-child');
+    if (!root) return;
+    root.querySelectorAll('.blocked-model-cb').forEach(cb => {
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change'));
+    });
+  },
+
+  async addAccount() {
+    const type = document.getElementById('acc-type').value;
+    const key = document.getElementById('acc-key').value.trim();
+    const label = document.getElementById('acc-label').value.trim();
+    if (!key) return this.toast('请输入 Key 或 Token', 'error');
+    const body = type === 'api_key' ? { api_key: key, label } : { token: key, label };
+    const r = await this.api('POST', '/accounts', body);
+    if (r.success) { this.toast('账号已添加'); document.getElementById('acc-key').value = ''; document.getElementById('acc-label').value = ''; this.loadAccounts(); }
+    else this.toast(r.error || '添加失败', 'error');
+  },
+
+  async toggleAccount(id, status) { await this.api('PATCH', `/accounts/${id}`, { status }); this.loadAccounts(); },
+  async resetErrors(id) { await this.api('PATCH', `/accounts/${id}`, { resetErrors: true }); this.loadAccounts(); this.toast('错误已重置'); },
+  async deleteAccount(id) {
+    const ok = await this.confirm('删除账号', '此操作不可撤销，确定要删除该账号吗？', { danger: true, okText: '删除' });
+    if (!ok) return;
+    await this.api('DELETE', `/accounts/${id}`);
+    this.loadAccounts();
+    this.toast('账号已删除');
+  },
+
+  // ─── Models ──────────────────────────────────
+  async loadModels() {
+    const [modelData, accessData] = await Promise.all([
+      this.api('GET', '/models'),
+      this.api('GET', '/model-access'),
+    ]);
+    this.allModels = modelData.models || [];
+    this.modelAccessConfig = accessData.mode ? accessData : { mode: 'all', list: [] };
+    document.querySelector(`input[name="model-mode"][value="${this.modelAccessConfig.mode}"]`).checked = true;
+    this.updateModelListUI();
+  },
+
+  updateModelListUI() {
+    const sec = document.getElementById('model-list-section');
+    if (this.modelAccessConfig.mode === 'all') {
+      sec.classList.add('hidden');
+      return;
+    }
+    sec.classList.remove('hidden');
+    const isAllow = this.modelAccessConfig.mode === 'allowlist';
+    document.getElementById('model-list-title').textContent = isAllow ? '允许的模型' : '屏蔽的模型';
+    document.getElementById('model-list-hint').textContent = isAllow
+      ? '只有选中的模型可以使用，未选中的模型将返回 403 错误'
+      : '选中的模型将被屏蔽，未选中的模型可正常使用';
+
+    const current = this.modelAccessConfig.list;
+    if (current.length > 0) {
+      document.getElementById('model-list-current').innerHTML = `
+        <div class="text-xs text-muted" style="margin-bottom:6px">当前清单 (${current.length})</div>
+        <div class="model-chips">${current.map(m => `<span class="model-chip selected">${m}<span class="remove" onclick="App.removeModelFromList('${m}')">×</span></span>`).join('')}</div>`;
+    } else {
+      document.getElementById('model-list-current').innerHTML = '<div class="text-xs text-dim">清单为空</div>';
+    }
+    this.filterModels();
+  },
+
+  filterModels() {
+    const search = (document.getElementById('model-search')?.value || '').toLowerCase();
+    const provider = document.getElementById('model-provider-filter')?.value || '';
+    const list = this.modelAccessConfig.list;
+
+    const filtered = this.allModels.filter(m => {
+      if (search && !m.name.toLowerCase().includes(search) && !m.provider.toLowerCase().includes(search)) return false;
+      if (provider && m.provider !== provider) return false;
+      return true;
+    });
+
+    const grouped = {};
+    for (const m of filtered) {
+      if (!grouped[m.provider]) grouped[m.provider] = [];
+      grouped[m.provider].push(m);
+    }
+
+    const container = document.getElementById('model-chips-container');
+    container.innerHTML = Object.entries(grouped).map(([prov, models]) => `
+      <div class="provider-group">
+        <div class="provider-label">${prov}</div>
+        <div class="model-chips">${models.map(m => {
+          const inList = list.includes(m.id);
+          return `<span class="model-chip ${inList ? 'selected' : ''}" onclick="App.toggleModelInList('${m.id}')">${m.name}</span>`;
+        }).join('')}</div>
+      </div>
+    `).join('') || '<div class="text-sm text-dim">没有符合的模型</div>';
+  },
+
+  async setModelMode(mode) {
+    await this.api('PUT', '/model-access', { mode });
+    this.modelAccessConfig.mode = mode;
+    this.updateModelListUI();
+    this.toast('模式已更新');
+  },
+
+  async toggleModelInList(modelId) {
+    const idx = this.modelAccessConfig.list.indexOf(modelId);
+    if (idx > -1) {
+      await this.api('POST', '/model-access/remove', { model: modelId });
+      this.modelAccessConfig.list.splice(idx, 1);
+    } else {
+      await this.api('POST', '/model-access/add', { model: modelId });
+      this.modelAccessConfig.list.push(modelId);
+    }
+    this.updateModelListUI();
+  },
+
+  async removeModelFromList(modelId) {
+    await this.api('POST', '/model-access/remove', { model: modelId });
+    this.modelAccessConfig.list = this.modelAccessConfig.list.filter(m => m !== modelId);
+    this.updateModelListUI();
+  },
+
+  // ─── Proxy ───────────────────────────────────
+  async loadProxy() {
+    const d = await this.api('GET', '/proxy');
+    if (d.global) {
+      document.getElementById('proxy-type').value = d.global.type || 'http';
+      document.getElementById('proxy-host').value = (d.global.host || '').replace(/:\d+$/, '');
+      document.getElementById('proxy-port').value = d.global.port || '';
+      document.getElementById('proxy-user').value = d.global.username || '';
+      document.getElementById('proxy-pass').value = d.global.password || '';
+      const h = (d.global.host || '').replace(/:\d+$/, '');
+      const authInfo = d.global.username ? `（认证：${d.global.username}）` : '';
+      document.getElementById('proxy-current').textContent = `当前：${d.global.type}://${h}:${d.global.port}${authInfo}`;
+    } else {
+      document.getElementById('proxy-current').textContent = '未配置全局代理';
+    }
+    const accts = await this.api('GET', '/accounts');
+    const tbody = document.querySelector('#proxy-accounts-table tbody');
+    const pa = d.perAccount || {};
+    tbody.innerHTML = (accts.accounts || []).map(a => {
+      const p = pa[a.id];
+      return `<tr>
+        <td>${this.esc(a.email)} <code class="text-xs">${a.id}</code></td>
+        <td>${p ? `<code>${p.type}://${p.username ? p.username + '@' : ''}${p.host}:${p.port}</code>` : '<span class="text-sm text-dim">无（使用全局）</span>'}</td>
+        <td class="nowrap">
+          <div class="btn-group">
+            <button class="btn btn-outline btn-xs" onclick="App.editAccountProxy('${a.id}','${this.esc(a.email)}')">配置</button>
+            ${p ? `<button class="btn btn-ghost btn-xs" style="color:var(--error)" onclick="App.clearAccountProxy('${a.id}')">清除</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('') || '<tr class="empty-row"><td colspan="3">暂无账号</td></tr>';
+  },
+
+  async saveGlobalProxy() {
+    const cfg = {
+      type: document.getElementById('proxy-type').value,
+      host: document.getElementById('proxy-host').value.trim(),
+      port: document.getElementById('proxy-port').value,
+      username: document.getElementById('proxy-user').value,
+      password: document.getElementById('proxy-pass').value,
+    };
+    if (!cfg.host) return this.toast('请输入代理主机', 'error');
+    await this.api('PUT', '/proxy/global', cfg);
+    this.toast('全局代理已保存');
+    this.loadProxy();
+  },
+
+  async clearGlobalProxy() {
+    await this.api('DELETE', '/proxy/global');
+    ['proxy-host','proxy-port','proxy-user','proxy-pass'].forEach(id => document.getElementById(id).value = '');
+    this.toast('全局代理已清除');
+    this.loadProxy();
+  },
+
+  async editAccountProxy(id, label) {
+    const values = await this.prompt(
+      `配置账号代理`,
+      `为账号 ${label} 设置独立代理`,
+      [
+        { name: 'type', label: '类型', type: 'select', value: 'http', options: [
+          { value: 'http', label: 'HTTP' },
+          { value: 'https', label: 'HTTPS' },
+          { value: 'socks5', label: 'SOCKS5' },
+        ]},
+        { name: 'host', label: '主机', placeholder: '例如 proxy.example.com' },
+        { name: 'port', label: '端口', type: 'number', placeholder: '8080' },
+        { name: 'username', label: '用户名', placeholder: '可选' },
+        { name: 'password', label: '密码', type: 'password', placeholder: '可选' },
+      ]
+    );
+    if (!values || !values.host) return;
+    await this.api('PUT', `/proxy/accounts/${id}`, {
+      type: values.type || 'http',
+      host: values.host,
+      port: parseInt(values.port) || 8080,
+      username: values.username || '',
+      password: values.password || '',
+    });
+    this.toast('账号代理已配置');
+    this.loadProxy();
+  },
+
+  async clearAccountProxy(id) {
+    await this.api('DELETE', `/proxy/accounts/${id}`);
+    this.toast('账号代理已清除');
+    this.loadProxy();
+  },
+
+  // ─── Logs ────────────────────────────────────
+  loadLogs() {
+    this.logEntries = [];
+    document.getElementById('log-container').innerHTML = '';
+    this.sseConn = new EventSource('/dashboard/api/logs/stream');
+    this.sseConn.onmessage = (e) => {
+      try {
+        const entry = JSON.parse(e.data);
+        this.logEntries.push(entry);
+        if (this.logEntries.length > 500) this.logEntries.shift();
+        this.renderLogEntry(entry);
+      } catch {}
+    };
+    this.sseConn.onerror = () => {};
+  },
+
+  renderLogEntry(entry) {
+    const container = document.getElementById('log-container');
+    const levelFilter = document.getElementById('log-level').value;
+    const search = document.getElementById('log-search').value.toLowerCase();
+    if (levelFilter && entry.level !== levelFilter) return;
+    if (search && !entry.msg.toLowerCase().includes(search)) return;
+    const div = document.createElement('div');
+    div.className = 'log-entry ' + entry.level;
+    const ts = new Date(entry.ts).toLocaleTimeString();
+    div.innerHTML = `<span class="ts">${ts}</span><span class="lvl">${entry.level.toUpperCase()}</span><span>${this.esc(entry.msg)}</span>`;
+    container.appendChild(div);
+    if (container.children.length > 500) container.removeChild(container.firstChild);
+    if (document.getElementById('log-autoscroll').checked) container.scrollTop = container.scrollHeight;
+  },
+
+  debouncedFilterLogs() {
+    clearTimeout(this._filterTimer);
+    this._filterTimer = setTimeout(() => this.filterLogs(), 200);
+  },
+
+  filterLogs() {
+    const container = document.getElementById('log-container');
+    const frag = document.createDocumentFragment();
+    const levelFilter = document.getElementById('log-level').value;
+    const search = document.getElementById('log-search').value.toLowerCase();
+    for (const entry of this.logEntries) {
+      if (levelFilter && entry.level !== levelFilter) continue;
+      if (search && !entry.msg.toLowerCase().includes(search)) continue;
+      const div = document.createElement('div');
+      div.className = 'log-entry ' + entry.level;
+      const ts = new Date(entry.ts).toLocaleTimeString();
+      div.innerHTML = `<span class="ts">${ts}</span><span class="lvl">${entry.level.toUpperCase()}</span><span>${this.esc(entry.msg)}</span>`;
+      frag.appendChild(div);
+    }
+    container.innerHTML = '';
+    container.appendChild(frag);
+  },
+
+  clearLogView() {
+    this.logEntries = [];
+    document.getElementById('log-container').innerHTML = '';
+  },
+
+  // ─── Stats ───────────────────────────────────
+  _fmtTokens(n) {
+    n = Number(n) || 0;
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return String(n);
+  },
+
+  async loadStats() {
+    const d = await this.api('GET', '/stats');
+    const totalTokens = d.totalTokens || 0;
+    const totalCredits = d.totalCredits || 0;
+
+    // Top metric cards — add Tokens and Credits alongside existing counters
+    document.getElementById('stats-cards').innerHTML = `
+      <div class="card info"><div class="card-header"><div class="card-title">总请求</div></div><div class="card-value">${d.totalRequests || 0}</div></div>
+      <div class="card success"><div class="card-header"><div class="card-title">成功</div></div><div class="card-value">${d.successCount || 0}</div></div>
+      <div class="card error"><div class="card-header"><div class="card-title">错误</div></div><div class="card-value">${d.errorCount || 0}</div></div>
+      <div class="card accent"><div class="card-header"><div class="card-title">成功率</div></div><div class="card-value">${d.totalRequests > 0 ? ((d.successCount/d.totalRequests)*100).toFixed(1) : 0}%</div></div>
+      <div class="card info"><div class="card-header"><div class="card-title">Token 总消耗</div></div><div class="card-value">${this._fmtTokens(totalTokens)}</div></div>
+      <div class="card accent"><div class="card-header"><div class="card-title">Credits 总花销</div></div><div class="card-value">${totalCredits.toFixed(1)}</div></div>
+    `;
+
+    // Per-model stats — now also shows input/output/cached tokens and credits
+    // Accumulate token splits from apis[*].models[model].details so the table
+    // can show input vs output vs cached breakdowns, which the flat
+    // modelCounts snapshot doesn't preserve.
+    const modelTokens = {};
+    for (const api of Object.values(d.apis || {})) {
+      for (const [mName, mc] of Object.entries(api.models || {})) {
+        if (!modelTokens[mName]) modelTokens[mName] = { input: 0, output: 0, cached: 0 };
+        for (const det of (mc.details || [])) {
+          modelTokens[mName].input  += det.tokens?.input  || 0;
+          modelTokens[mName].output += det.tokens?.output || 0;
+          modelTokens[mName].cached += det.tokens?.cached || 0;
+        }
+      }
+    }
+    const models = d.modelCounts || {};
+    const tbody = document.querySelector('#model-stats-table tbody');
+    tbody.innerHTML = Object.entries(models).map(([m, s]) => {
+      const t = modelTokens[m] || { input: 0, output: 0, cached: 0 };
+      return `
+      <tr>
+        <td><code>${m}</code></td>
+        <td>${s.requests}</td>
+        <td style="color:var(--success)">${s.success}</td>
+        <td style="color:${s.errors > 0 ? 'var(--error)' : 'inherit'}">${s.errors}</td>
+        <td>${s.requests > 0 ? ((s.success/s.requests)*100).toFixed(1) : 0}%</td>
+        <td class="text-sm">${s.requests > 0 ? Math.round(s.totalMs/s.requests) : 0} ms</td>
+        <td class="text-sm">${this._fmtTokens(t.input)}</td>
+        <td class="text-sm">${this._fmtTokens(t.output)}</td>
+        <td class="text-sm">${this._fmtTokens(t.cached)}</td>
+        <td class="text-sm">${(s.totalCredits || 0).toFixed(1)}</td>
+      </tr>`;
+    }).join('') || '<tr class="empty-row"><td colspan="10">暂无请求数据</td></tr>';
+
+    // 24h request bar chart (legacy — keeps synthesising from hourlyBuckets)
+    const buckets = (d.hourlyBuckets || []).slice(-24);
+    const maxReq = Math.max(1, ...buckets.map(b => b.requests));
+    document.getElementById('stats-chart').innerHTML = buckets.map(b => {
+      const h = Math.max(2, (b.requests / maxReq) * 100);
+      return `<div class="bar-wrap"><div class="bar ${b.errors > 0 ? 'has-errors' : ''}" style="height:${h}%" title="${b.requests} 请求 / ${b.errors} 错误"></div><div class="bar-label">${new Date(b.hour).getHours()}时</div></div>`;
+    }).join('') || '<div class="text-sm text-dim" style="text-align:center;width:100%;padding:30px">暂无数据</div>';
+
+    // Daily tokens chart — last 14 days including today (UTC)
+    const byDay = d.tokensByDay || {};
+    const days = [];
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const dayDate = new Date(today.getTime() - i * 86400 * 1000);
+      const key = dayDate.toISOString().slice(0, 10);
+      days.push({ key, tokens: byDay[key] || 0 });
+    }
+    const maxDay = Math.max(1, ...days.map(x => x.tokens));
+    document.getElementById('usage-daily-chart').innerHTML = days.map(x => {
+      const h = Math.max(2, (x.tokens / maxDay) * 100);
+      const label = x.key.slice(5); // MM-DD
+      return `<div class="bar-wrap"><div class="bar" style="height:${h}%" title="${x.key}: ${this._fmtTokens(x.tokens)} tokens"></div><div class="bar-label">${label}</div></div>`;
+    }).join('') || '<div class="text-sm text-dim" style="text-align:center;width:100%;padding:30px">暂无数据</div>';
+
+    // Hour-of-day chart — 24 folded hour buckets
+    const byHour = d.tokensByHour || {};
+    const hours = [];
+    for (let h = 0; h < 24; h++) {
+      const key = String(h).padStart(2, '0');
+      hours.push({ key, tokens: byHour[key] || 0 });
+    }
+    const maxHour = Math.max(1, ...hours.map(x => x.tokens));
+    document.getElementById('usage-hourly-chart').innerHTML = hours.map(x => {
+      const h = Math.max(2, (x.tokens / maxHour) * 100);
+      return `<div class="bar-wrap"><div class="bar" style="height:${h}%" title="${x.key}时: ${this._fmtTokens(x.tokens)} tokens"></div><div class="bar-label">${x.key}时</div></div>`;
+    }).join('') || '<div class="text-sm text-dim" style="text-align:center;width:100%;padding:30px">暂无数据</div>';
+
+    // Request details table — flatten apis[*].models[*].details[] into a
+    // single time-sorted list, show latest 80 rows.
+    const allDetails = [];
+    for (const [apiPath, api] of Object.entries(d.apis || {})) {
+      for (const [mName, mc] of Object.entries(api.models || {})) {
+        for (const det of (mc.details || [])) {
+          allDetails.push({ apiPath, model: mName, ...det });
+        }
+      }
+    }
+    allDetails.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const rows = allDetails.slice(0, 80);
+    const detailsTbody = document.querySelector('#usage-details-table tbody');
+    detailsTbody.innerHTML = rows.map(r => {
+      const ts = new Date(r.timestamp);
+      const timeStr = ts.toLocaleString('zh-CN', { hour12: false });
+      const statusBadge = r.failed
+        ? '<span style="color:var(--error)">失败</span>'
+        : '<span style="color:var(--success)">成功</span>';
+      return `
+      <tr>
+        <td class="text-sm">${timeStr}</td>
+        <td class="text-sm">${r.apiPath}</td>
+        <td class="text-sm"><code>${r.model}</code></td>
+        <td class="text-sm"><code>${r.authIndex || '-'}</code></td>
+        <td class="text-sm">${r.latencyMs || 0} ms</td>
+        <td class="text-sm">${this._fmtTokens(r.tokens?.input || 0)}</td>
+        <td class="text-sm">${this._fmtTokens(r.tokens?.output || 0)}</td>
+        <td class="text-sm">${this._fmtTokens(r.tokens?.cached || 0)}</td>
+        <td class="text-sm">${(r.credit || 0).toFixed(1)}</td>
+        <td class="text-sm">${statusBadge}</td>
+      </tr>`;
+    }).join('') || '<tr class="empty-row"><td colspan="10">暂无明细数据（可能是缓存命中或升级前的旧数据）</td></tr>';
+
+    this.poll('stats', () => this.loadStats(), 30000);
+  },
+
+  async resetStats() {
+    const ok = await this.confirm('重置统计', '所有请求统计数据将被清空，此操作不可恢复', { danger: true, okText: '重置' });
+    if (!ok) return;
+    await this.api('DELETE', '/stats');
+    this.toast('统计已重置');
+    this.loadStats();
+  },
+
+  // Export the current usage snapshot as a JSON file. Forces the browser
+  // to download rather than navigate by synthesising an anchor + blob.
+  async exportUsage() {
+    try {
+      const pw = this.password || localStorage.getItem('dp') || '';
+      const res = await fetch('/dashboard/api/usage/export', {
+        headers: { 'X-Dashboard-Password': pw },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const ts = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `windsurfapi-usage-${ts}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+      this.toast('已开始下载历史数据');
+    } catch (e) {
+      this.toast('导出失败: ' + e.message, 'error');
+    }
+  },
+
+  // Handle the hidden file input's change event — read the selected JSON,
+  // POST it to /usage/import, surface the {added, skipped} result.
+  async importUsage(event) {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // reset so the same file can be chosen twice
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const payload = JSON.parse(text);
+      const result = await this.api('POST', '/usage/import', payload);
+      this.toast(`导入完成：新增 ${result.added} 条，去重 ${result.skipped} 条`);
+      this.loadStats();
+    } catch (e) {
+      this.toast('导入失败: ' + e.message, 'error');
+    }
+  },
+
+  // ─── Experimental features ───────────────────
+  async loadExperimental() {
+    const d = await this.api('GET', '/experimental');
+    const cb = document.getElementById('exp-cascade-reuse');
+    if (cb) cb.checked = !!d.flags?.cascadeConversationReuse;
+    const idCb = document.getElementById('exp-identity-prompt');
+    if (idCb) idCb.checked = !!d.flags?.modelIdentityPrompt;
+    const pool = d.conversationPool || {};
+    document.getElementById('exp-pool-cards').innerHTML = `
+      <div class="card info">
+        <div class="card-header"><div class="card-title">命中率</div></div>
+        <div class="card-value">${pool.hitRate || '0.0'}%</div>
+        <div class="card-sub">${pool.hits || 0} 命中 / ${pool.misses || 0} 未命中</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">对话池</div></div>
+        <div class="card-value">${pool.size || 0}</div>
+        <div class="card-sub">上限 ${pool.maxSize || 0} · TTL ${Math.round((pool.ttlMs || 0) / 60000)} 分钟</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">存储次数</div></div>
+        <div class="card-value">${pool.stores || 0}</div>
+        <div class="card-sub">过期 ${pool.expired || 0} · 淘汰 ${pool.evictions || 0}</div>
+      </div>
+    `;
+  },
+
+  async toggleExperimental(key, enabled) {
+    try {
+      await this.api('PUT', '/experimental', { [key]: enabled });
+      this.toast(`${enabled ? '已启用' : '已关闭'}实验性功能`, 'success');
+      this.loadExperimental();
+    } catch (e) {
+      this.toast('切换失败：' + e.message, 'error');
+      this.loadExperimental();
+    }
+  },
+
+  async clearConversationPool() {
+    const ok = await this.confirm('清空对话池', '当前所有进行中的 Cascade 会话都将放弃复用，确定继续吗？', { okText: '清空' });
+    if (!ok) return;
+    const r = await this.api('DELETE', '/experimental/conversation-pool');
+    this.toast(`已清空 ${r.cleared || 0} 条会话`, 'success');
+    this.loadExperimental();
+  },
+
+  // ─── Ban Detection ───────────────────────────
+  async loadBans() {
+    const d = await this.api('GET', '/accounts');
+    const accounts = d.accounts || [];
+    const errored = accounts.filter(a => a.status === 'error' || a.errorCount > 0);
+    document.getElementById('ban-cards').innerHTML = `
+      <div class="card ${errored.length > 0 ? 'error' : 'success'}">
+        <div class="card-header"><div class="card-title">异常账号</div></div>
+        <div class="card-value">${errored.length}</div>
+        <div class="card-sub">共 ${accounts.length} 个账号</div>
+      </div>
+      <div class="card warn">
+        <div class="card-header"><div class="card-title">已停用</div></div>
+        <div class="card-value">${accounts.filter(a => a.status === 'error').length}</div>
+        <div class="card-sub">自动错误停用</div>
+      </div>
+      <div class="card info">
+        <div class="card-header"><div class="card-title">限流中</div></div>
+        <div class="card-value">${accounts.filter(a => a.rateLimited).length}</div>
+        <div class="card-sub">暂时不参与调度</div>
+      </div>
+    `;
+    const tbody = document.querySelector('#ban-table tbody');
+    tbody.innerHTML = accounts.map(a => {
+      const flagged = a.status === 'error' || a.errorCount > 0;
+      return `<tr style="${flagged ? 'background:rgba(239,68,68,.03)' : ''}">
+        <td>${this.esc(a.email)} <code class="text-xs">${a.id}</code></td>
+        <td><span class="badge ${a.status}">${a.status}</span></td>
+        <td style="color:${a.errorCount > 0 ? 'var(--error)' : 'inherit'}">${a.errorCount}</td>
+        <td class="text-sm">${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</td>
+        <td class="nowrap">
+          <div class="btn-group">
+            ${a.status === 'error' ? `<button class="btn btn-success btn-xs" onclick="App.toggleAccount('${a.id}','active');setTimeout(()=>App.loadBans(),500)">重新启用</button>` : ''}
+            ${a.errorCount > 0 ? `<button class="btn btn-outline btn-xs" onclick="App.resetErrors('${a.id}');setTimeout(()=>App.loadBans(),500)">重置错误</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('') || '<tr class="empty-row"><td colspan="5">暂无账号</td></tr>';
+
+    this.poll('bans', () => this.loadBans(), 30000);
+  },
+
+  // ─── Helpers ─────────────────────────────────
+  fmtDuration(secs) {
+    const d = Math.floor(secs / 86400), h = Math.floor((secs % 86400) / 3600), m = Math.floor((secs % 3600) / 60);
+    if (d > 0) return `${d}天 ${h}时 ${m}分`;
+    if (h > 0) return `${h}时 ${m}分`;
+    return `${m}分 ${Math.floor(secs % 60)}秒`;
+  },
+  copyKey(key) {
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = key;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        const ok = document.execCommand('copy');
+        ta.remove();
+        this.toast(ok ? 'API Key 已复制' : '复制失败，请手动选择', ok ? 'success' : 'error');
+      } catch (e) {
+        this.toast('复制失败: ' + e.message, 'error');
+      }
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(key).then(() => this.toast('API Key 已复制')).catch(fallback);
+    } else {
+      fallback();
+    }
+  },
+  esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); },
+};
+
+window.addEventListener('DOMContentLoaded', () => App.init());
+</script>
+</body>
+</html>

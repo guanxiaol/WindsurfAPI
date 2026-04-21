@@ -188,6 +188,42 @@ _lookup.set('gpt-5-4-mini-medium', 'gpt-5.4-mini-medium');
 _lookup.set('gpt-5-4-mini-high', 'gpt-5.4-mini-high');
 _lookup.set('gpt-5-4-mini-xhigh', 'gpt-5.4-mini-xhigh');
 
+// Anthropic official dated names — Cursor / Claude Code / Anthropic SDK
+// all send these verbatim. Map each to our short key so the same client
+// can talk to this API without a custom-name translation layer.
+const ANTHROPIC_DATED = {
+  'claude-3-5-sonnet-20240620': 'claude-3.5-sonnet',
+  'claude-3-5-sonnet-20241022': 'claude-3.5-sonnet',
+  'claude-3-5-sonnet-latest':   'claude-3.5-sonnet',
+  'claude-3-7-sonnet-20250219': 'claude-3.7-sonnet',
+  'claude-3-7-sonnet-latest':   'claude-3.7-sonnet',
+  'claude-sonnet-4-20250514':   'claude-4-sonnet',
+  'claude-sonnet-4-0':          'claude-4-sonnet',
+  'claude-opus-4-20250514':     'claude-4-opus',
+  'claude-opus-4-0':            'claude-4-opus',
+  'claude-opus-4-1':            'claude-4.1-opus',
+  'claude-opus-4-1-20250805':   'claude-4.1-opus',
+  'claude-sonnet-4-5':          'claude-4.5-sonnet',
+  'claude-sonnet-4-5-20250929': 'claude-4.5-sonnet',
+  'claude-opus-4-5':            'claude-4.5-opus',
+  'claude-opus-4-5-20251101':   'claude-4.5-opus',
+};
+for (const [k, v] of Object.entries(ANTHROPIC_DATED)) _lookup.set(k, v);
+
+// OpenAI official dated names — same pattern
+const OPENAI_DATED = {
+  'gpt-4o-2024-11-20': 'gpt-4o',
+  'gpt-4o-2024-08-06': 'gpt-4o',
+  'gpt-4o-2024-05-13': 'gpt-4o',
+  'gpt-4o-mini-2024-07-18': 'gpt-4o-mini',
+  'gpt-4.1-2025-04-14': 'gpt-4.1',
+  'gpt-4.1-mini-2025-04-14': 'gpt-4.1-mini',
+  'gpt-4.1-nano-2025-04-14': 'gpt-4.1-nano',
+  'gpt-5-2025-08-07': 'gpt-5',
+  'gpt-5-pro-2025-10-06': 'gpt-5-high',
+};
+for (const [k, v] of Object.entries(OPENAI_DATED)) _lookup.set(k, v);
+
 /** Resolve user model name → internal model key. */
 export function resolveModel(name) {
   if (!name) return null;

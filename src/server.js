@@ -56,8 +56,12 @@ function readBody(req) {
 }
 
 function extractToken(req) {
-  const h = req.headers['authorization'] || '';
-  return h.startsWith('Bearer ') ? h.slice(7) : h;
+  // Anthropic SDK + OAI SDK compatibility: accept either header.
+  const authHeader = req.headers['authorization'] || '';
+  if (authHeader.startsWith('Bearer ')) return authHeader.slice(7);
+  if (authHeader) return authHeader;
+  const xApiKey = req.headers['x-api-key'] || '';
+  return xApiKey;
 }
 
 function json(res, status, body) {
@@ -206,6 +210,9 @@ async function route(req, res) {
     if (!Array.isArray(body.messages)) {
       return json(res, 400, { error: { message: 'messages must be an array', type: 'invalid_request' } });
     }
+    if (body.messages.length === 0) {
+      return json(res, 400, { error: { message: 'messages must contain at least 1 item', type: 'invalid_request' } });
+    }
 
     const result = await handleChatCompletions(body);
     if (result.stream) {
@@ -225,6 +232,9 @@ async function route(req, res) {
     let body;
     try { body = JSON.parse(await readBody(req)); } catch {
       return json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'Invalid JSON' } });
+    }
+    if (!Array.isArray(body.messages) || body.messages.length === 0) {
+      return json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'messages must be a non-empty array' } });
     }
     const result = await handleMessages(body);
     if (result.stream) {

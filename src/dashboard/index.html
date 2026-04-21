@@ -3117,18 +3117,11 @@ const App = {
   // new PR lands; the dashboard Credits panel renders straight from this.
   CONTRIBUTORS: [
     {
-      login: 'dd373156',
-      pr: 1,
-      mergedAt: '2026-04-20',
-      title: 'fix(models): make pro tier include dynamically merged cloud models',
-      summary: '发现 Pro 层级只看到硬编码的模型清单，拉自云端的动态扩展模型没合并进 tier 表，导致 Cursor / Cherry Studio 等客户端在 Pro 账号下也看不见最新上线的模型。修了 mergeCloudModels 的合并路径，让云端扩展模型进入 Pro 的可用清单。',
-    },
-    {
       login: 'colin1112a',
       pr: 13,
       mergedAt: '2026-04-21',
       title: 'fix: 一次性审计并提交 15 个安全 / 并发 / 资源管理 bug',
-      summary: '系统性扫了一遍仓库，围绕 XSS 转义、shell 注入、OOM 防护、auth 路由位置、gRPC 双回调、LS pool 竞态、HTTP/2 frame 上限等方向提 PR。我们在这个基础上再加固了 JS-level escJsAttr、_pending 合并 ensureLs、LS 退出时释放 pooled session，以及一些后续 Antigravity 审计发现的延伸修复。感谢提醒项目该重视 issues 了。',
+      summary: '系统性扫了一遍仓库，围绕 XSS 转义、shell 注入、OOM 防护、auth 路由位置、gRPC 双回调、LS pool 竞态、HTTP/2 frame 上限等方向提 PR。我们在这个基础上再加固了 JS-level escJsAttr、_pending 合并 ensureLs、LS 退出时释放 pooled session，以及一些后续 Antigravity 审计发现的延伸修复。提醒了项目该重视 issues — 非常感谢。',
     },
   ],
   loadCredits() {

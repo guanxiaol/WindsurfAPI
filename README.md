@@ -309,10 +309,8 @@ A: 只有 `gpt-4o-mini` 和 `gemini-2.5-flash`，其他全要 Pro。
 
 ## 贡献者
 
-特别感谢下面的朋友，他们提交过 PR 或系统性地审了代码，让这个项目变得更稳：
+特别感谢下面的朋友，他们系统性地审了代码 / 提交过 PR，让这个项目变得更稳：
 
-- [@dd373156](https://github.com/dd373156) — [PR #1](https://github.com/dwgx/WindsurfAPI/pull/1)
-  修复 Pro 层级的模型合并逻辑：原本只看硬编码清单，云端动态拉回来的模型没进 tier 表，Pro 账号在 Cursor / Cherry Studio 里看不到新上线的模型。
 - [@colin1112a](https://github.com/colin1112a) — [PR #13](https://github.com/dwgx/WindsurfAPI/pull/13)
   一次性审了 15 个安全 / 并发 / 资源管理 bug：XSS 转义、shell 注入、OOM 防护、auth 路由位置、gRPC 双回调、LS pool 竞态、HTTP/2 帧大小上限等。后续我们在这个基础上又加固了 JS-level `escJsAttr`、`_pending` 合并并发 `ensureLs`、LS 退出时释放 pooled session，并延伸修了 Antigravity 审计发现的 6 个问题。
 

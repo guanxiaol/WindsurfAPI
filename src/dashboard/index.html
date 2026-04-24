@@ -1405,6 +1405,13 @@ tbody tr:hover td { background: var(--surface-2); }
 .contributor-card .meta-top .merged-at { font-size: 11px; color: var(--text-dim); }
 .contributor-card .pr-title { font-weight: 500; margin-top: 4px; font-size: 13px; }
 .contributor-card .summary { font-size: 13px; color: var(--text-muted); line-height: 1.65; margin-top: 6px; }
+.contributor-card .weight-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.6px; font-family: var(--font-mono, ui-monospace, monospace); line-height: 1.5; }
+.contributor-card .weight-S-plus { background: linear-gradient(135deg, #f3c677, #d97706); color: #3a2806; box-shadow: 0 0 0 1px rgba(217,119,6,0.25); }
+.contributor-card .weight-S      { background: #c2410c; color: #fff7ed; }
+.contributor-card .weight-A-plus { background: #d97706; color: #fffbeb; }
+.contributor-card .weight-A      { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.contributor-card .weight-B-plus { background: transparent; color: var(--text-muted); border: 1px dashed var(--border); }
+.contributor-card .weight-B      { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
 </style>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js';
@@ -4700,53 +4707,85 @@ const App = {
   // new PR lands; the dashboard Credits panel renders straight from this.
   CONTRIBUTORS: [
     {
-      login: 'dd373156',
-      pr: 1,
-      mergedAt: '2026-04-20',
-      title: 'fix(models): make pro tier include dynamically merged cloud models',
-      summary: '发现 Pro 层级只看到硬编码的模型清单，拉自云端的动态扩展模型没合并进 tier 表，导致 Cursor / Cherry Studio 等客户端在 Pro 账号下也看不见最新上线的模型。修了 mergeCloudModels 的合并路径，让云端扩展模型进入 Pro 的可用清单。',
-    },
-    {
-      login: 'colin1112a',
-      pr: 13,
-      mergedAt: '2026-04-21',
-      title: 'fix: 一次性审计并提交 15 个安全 / 并发 / 资源管理 bug',
-      summary: '系统性扫了一遍仓库，围绕 XSS 转义、shell 注入、OOM 防护、auth 路由位置、gRPC 双回调、LS pool 竞态、HTTP/2 frame 上限等方向提 PR。',
-    },
-    {
-      login: 'motto1',
-      pr: 20,
-      mergedAt: '2026-04-21',
-      title: 'fix(dashboard): support Auth1 login and batch import',
-      summary: '为 Dashboard 添加 Windsurf Auth1 登录支持和批量账号导入功能。',
-    },
-    {
-      login: 'youfak',
-      pr: 26,
-      mergedAt: '2026-04-22',
-      title: 'feat: Docker support + LS restart fix',
-      summary: 'Docker Compose 部署支持、Dockerfile 编写、LS 进程重启修复。',
+      login: 'aict666',
+      pr: 51,
+      weight: 'S+',
+      weightLabel: '最高信任级别：root-cause 精准、测试齐全、诊断可追溯',
+      mergedAt: '2026-04-24',
+      title: 'fix: 重写 tool preamble 去 jailbreak 措辞，绕过 Opus 4.7 injection guard',
+      summary: 'Opus-class 模型走 /v1/messages 时完全不 emit <tool_call>，直接回复"The pasted content appears to be a prompt-injection attempt"。root cause 精确到 TOOL_PROTOCOL_HEADER 里三段越狱措辞（IGNORE any earlier / For THIS request only / [Tool-calling context] 栅栏）被 Opus 自己的 injection detector 反杀。重写成中性的 "The following functions are available for this turn"，保留 <tool_call> 协议合同与 parser 不动，附带 3 条 banned-regex 回归测试防止未来倒退。PR body 可以直接发 Anthropic 论坛。',
     },
     {
       login: 'baily-zhang',
-      pr: 36,
-      mergedAt: '2026-04-22',
-      title: 'fix: Cascade reuse stableTurns + offset tracking',
-      summary: 'PR #36 修复 fingerprint 0% 命中率（stableTurns 只 hash user+tool）；PR #45 增量 offset 消除多轮复用时的上下文膨胀。',
+      pr: 45,
+      weight: 'S',
+      weightLabel: '根因修复：上下文重放 / usage 累加',
+      mergedAt: '2026-04-24',
+      title: 'fix: 切断 Cascade 复用时的旧 step 重放（alpha→alphabeta→alphabeta…）',
+      summary: '复用 cascade_id 时 GetCascadeTrajectorySteps 每次都从 step 0 拉，结果旧 step 的 assistant text 被重放到新轮里，输出变成 "alpha" → "alphabeta" → "alphabetabeta"；usage 也累加成整条 cascade 的总量。修法是把 stepOffset / generatorOffset 随 pool entry 持久化，每次复用时从上次的 offset 继续拉。给 PR #36 之后仍报胡言乱语的用户找回最后一块拼图。',
     },
     {
       login: 'aict666',
       pr: 44,
+      weight: 'S+',
+      weightLabel: '账号 tier 识别的关键修复',
       mergedAt: '2026-04-24',
-      title: 'fix(auth): don\'t demote Pro/Trial tier after each chat call',
-      summary: '修复 chat 调用后 inferTier 把 Pro/Trial 账号降级为 free 的 bug，保护了 GetUserStatus 设定的权威 tier。',
+      title: 'fix(auth): 阻止 non-premium 调用把 Pro/Trial 降级为 free',
+      summary: 'updateCapability 在每次成功 chat 后无条件 inferTier() 覆写 account.tier。inferTier 只认 claude-opus-4.6 / sonnet-4.6 作为 Pro 证据，Pro 账号只要调用 gemini-2.5-flash 或 gpt-4o-mini 一次就被悄悄降级到 free，后续请求按 free 限制，Dashboard 显示 FREE。修法是当 GetUserStatus 已经给过权威 tier（userStatusLastFetched > 0 或 tierManual=true）时跳过 inferTier 回退。probeAccount 原本有手动 restore 工作绕过，chat handler 路径没有，每个真实 API 调用都在偷偷降级账号。',
     },
     {
       login: 'smeinecke',
       pr: 43,
+      weight: 'A',
+      weightLabel: '国际化基础设施贡献者',
       mergedAt: '2026-04-24',
       title: 'feat: Dashboard 完整 i18n 国际化',
-      summary: '14 个 commit 覆盖中英文翻译 + I18n 系统 + check-i18n.js 校验工具。Dashboard 支持中英文切换。',
+      summary: '14 个 commit 把所有硬编码中文改成 I18n.t() 调用，补齐 en.json / zh-CN.json 缺键，加 check-i18n.js 扫 JavaScript 里的 I18n.t() key 确保 locale 里都有对应翻译。让 Dashboard 真正能中英双语切换，不是翻了一半的半成品。',
+    },
+    {
+      login: 'baily-zhang',
+      pr: 36,
+      weight: 'S',
+      weightLabel: '上下文丢失根因修复者',
+      mergedAt: '2026-04-22',
+      title: 'fix: fingerprint 只 hash 稳定轮，消除 0% 复用命中',
+      summary: 'Claude Code 每次重构 assistant content（数组 ↔ 字符串 ↔ 含 tool_use blocks）而 system prompt 又含动态项目状态，老 fingerprint 把这两者 hash 进去导致永不匹配。改成只 hash user + tool_result 两类稳定轮，system prompt 通过 CASCADE_REUSE_HASH_SYSTEM=1 opt-in。外加可配置历史 budget（1m 模型更大默认）+ LS_DATA_DIR override。#24 "胡言乱语"爆发后的第一块拼图，和 PR #45 合起来算这条线上最彻底的修复。',
+    },
+    {
+      login: 'youfak',
+      pr: 26,
+      weight: 'A+',
+      weightLabel: '部署体验贡献者：Docker 零依赖适配',
+      mergedAt: '2026-04-22',
+      title: 'feat: Docker 全套部署 + DATA_DIR + LS 重启兜底',
+      summary: 'Dockerfile / docker-compose.yml / .dockerignore / .gitattributes 一整套，配 DATA_DIR 配置项把 accounts.json / stats.json / logs/ 等持久化文件统一收敛到可挂载的数据目录。附带修两个 LS 稳定性问题：Windows 宿主机构建时 install-ls.sh 的 CRLF 会导致容器内 set: pipefail 报错；Dashboard 点重启 LS 时若启动失败会把整个 Node 进程打崩。',
+    },
+    {
+      login: 'motto1',
+      pr: 20,
+      weight: 'A',
+      weightLabel: '登录取号链路还原',
+      mergedAt: '2026-04-21',
+      title: 'fix(dashboard): 补上 Windsurf 官网实际使用的 Auth1 登录链路',
+      summary: '官网可以登但 Dashboard 登录失败 —— 原因是旧 Firebase 路径已不是主链路。逆向补出 /_devin-auth/connections → /_devin-auth/password/login → WindsurfPostAuth → GetOneTimeAuthToken 四步流程，保留旧 Firebase 作为兜底，再顺手加了邮箱/密码批量导入 + 剪贴板读取。',
+    },
+    {
+      login: 'dd373156',
+      pr: 1,
+      weight: 'B+',
+      weightLabel: '首位外部 PR 贡献者',
+      mergedAt: '2026-04-20',
+      title: 'fix(models): 让 pro tier 识别到云端动态合并的模型',
+      summary: 'MODEL_TIER_ACCESS.pro 引用的是 ALL_MODEL_KEYS —— 模块加载时的 Object.keys(MODELS) 快照。mergeCloudModels 启动后加进来的五个 claude-opus-4-7-* 永远不在这个冻结数组里，每个请求都 403 model_not_entitled。一行改成 getter 让每次访问都重新枚举 live MODELS dict。三步 curl 复现写得教科书级。',
+    },
+    {
+      login: 'colin1112a',
+      pr: 13,
+      weight: 'B+',
+      weightLabel: '早期代码审查先行者（PR 未合但方向正确）',
+      mergedAt: '2026-04-21',
+      title: 'fix: 一次性审计并提交 15 个安全 / 并发 / 资源管理 bug',
+      summary: '系统性扫了一遍仓库提了 CRITICAL/HIGH/MEDIUM 15 条修复建议：XSS 转义、shell 注入防护、10MB body 上限、auth 路由顺序、gRPC 双回调保护、LS pool 并发竞态、HTTP/2 frame 16MB 上限、varint BigInt 支持。PR 因改动面过大未直接合并，但其中多项被后续独立重做。',
     },
   ],
   loadCredits() {
@@ -4758,6 +4797,7 @@ const App = {
         <div class="meta">
           <div class="meta-top">
             <a class="name" target="_blank" rel="noopener" href="https://github.com/${this.esc(c.login)}">@${this.esc(c.login)}</a>
+            ${c.weight ? `<span class="weight-badge weight-${this.esc(c.weight).replace('+','-plus')}" title="${this.esc(c.weightLabel || '')}">${this.esc(c.weight)}</span>` : ''}
             <a class="pr-link" target="_blank" rel="noopener" href="https://github.com/dwgx/WindsurfAPI/pull/${c.pr}">PR #${c.pr}</a>
             <span class="merged-at">${this.esc(c.mergedAt)}</span>
           </div>

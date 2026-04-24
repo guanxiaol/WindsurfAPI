@@ -222,9 +222,9 @@
     },
     "cascadeReuse": {
       "title": "Cascade Conversation Reuse",
-      "desc": "Reuse the same cascade_id across multi-turn conversations, only sending the latest user message to Windsurf. Let the server maintain context cache. Significantly reduces TTFB and upload volume on cache hits; automatically falls back to new session on cache miss or account/LS change. Requires client to retain full history and append in order (e.g., new-api, OpenWebUI).",
+      "desc": "Reuse the same cascade_id across multi-turn conversations, only sending the latest user message to Windsurf. Let the server maintain context cache. Significantly reduces TTFB and upload volume on cache hits; automatically falls back to new session on cache miss or account/LS change. Requires client to retain full history and append in order (e.g., new-api, OpenWebUI). Note: this toggle only governs cascade_id reuse across requests — it does NOT control whether Cascade is used. Tool-emulated requests (Claude Code / Cline / Cursor) auto-skip reuse because each turn's content changes, regardless of this setting.",
       "enable": "Enable Cascade Conversation Reuse",
-      "hint": "Disabled by default. When enabled, takes effect immediately on current conversation pool."
+      "hint": "Enabled by default. When disabled, Cascade is still used but a fresh session is created per turn. Takes effect immediately on current conversation pool."
     },
     "identityPrompt": {
       "title": "Model Identity Prompt",

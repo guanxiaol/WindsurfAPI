@@ -218,9 +218,9 @@
     },
     "cascadeReuse": {
       "title": "Cascade 对话复用",
-      "desc": "多轮对话时复用同一个 cascade_id，只把最新一条 user 消息发给 Windsurf，让服务端维持上下文缓存。命中时可显著降低 TTFB 与上传体积；未命中或账号/LS 变更会自动回退到新会话。需要客户端保留完整历史并按顺序追加（如 new-api、OpenWebUI）。",
+      "desc": "多轮对话时复用同一个 cascade_id，只把最新一条 user 消息发给 Windsurf，让服务端维持上下文缓存。命中时可显著降低 TTFB 与上传体积；未命中或账号/LS 变更会自动回退到新会话。需要客户端保留完整历史并按顺序追加（如 new-api、OpenWebUI）。注意：此开关只控制 cascade_id 的跨请求复用，不控制是否走 Cascade 模式；工具调用请求（Claude Code / Cline / Cursor）因每轮内容变化自动跳过复用，不受此开关影响。",
       "enable": "启用 Cascade 对话复用",
-      "hint": "默认关闭。开启后对当前对话池立即生效。"
+      "hint": "默认开启。关闭后每轮仍走 Cascade，只是不再复用上一轮的 session。对当前对话池立即生效。"
     },
     "identityPrompt": {
       "title": "模型身份提示词",

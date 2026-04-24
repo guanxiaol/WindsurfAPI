@@ -22,15 +22,26 @@ services:
       # closed-source Windsurf and cannot be baked into the image.
       - /opt/windsurf:/opt/windsurf:ro
       # Persist runtime state across container restarts.
+      # NOTE: If you bind-mount host files here, make sure they're readable/
+      # writable by UID 101 (alpine 'app' user):
+      #   touch accounts.json stats.json runtime-config.json proxy-config.json model-access.json
+      #   chown 101:101 *.json
       - ./accounts.json:/app/accounts.json
       - ./stats.json:/app/stats.json
       - ./runtime-config.json:/app/runtime-config.json
       - ./proxy-config.json:/app/proxy-config.json
       - ./model-access.json:/app/model-access.json
-      - ./logs:/app/logs
+      # Named volume for logs — Docker initialises the volume with the image's
+      # existing /app/logs ownership (app:app), so writes never hit EACCES.
+      # Avoids the classic "bind-mount ./logs is root-owned, container runs as
+      # app" footgun. If you prefer a host path, set LOG_DIR to a writable one.
+      - windsurfapi-logs:/app/logs
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3003/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+volumes:
+  windsurfapi-logs:

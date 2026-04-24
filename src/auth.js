@@ -739,7 +739,14 @@ export function updateCapability(apiKey, modelKey, ok, reason = '') {
   if (ok && (account.tier === 'free' || account.tier === 'unknown')) {
     registerDiscoveredFreeModel(modelKey);
   }
-  account.tier = inferTier(account.capabilities);
+  // Only infer tier when we have no authoritative source. GetUserStatus
+  // (userStatusLastFetched) and manual override (tierManual) are both
+  // authoritative; inferTier only looks at canary model capabilities and
+  // would otherwise demote a Pro/Trial account back to 'free' as soon as
+  // a non-premium model (e.g. gemini-2.5-flash, gpt-4o-mini) succeeds.
+  if (!account.tierManual && !account.userStatusLastFetched) {
+    account.tier = inferTier(account.capabilities);
+  }
   saveAccounts();
 }
 

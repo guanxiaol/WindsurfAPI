@@ -363,33 +363,43 @@ export async function handleChatCompletions(body) {
   // Language-following hint for CJK users (#35)
   if (useCascade) injectLanguageHint(cascadeMessages);
 
-  // ── Phantom-attachment guard ──
-  // Third-party verifiers (hvoy.ai) probe multimodal capability by asking
-  // "What does this PDF/image contain?" WITHOUT attaching anything. A
-  // well-behaved model should say "nothing was attached." Cascade, being
-  // an agentic/tool-happy model, tends to either hallucinate content or
-  // derail into "let me use the view_file tool." This guard detects the
-  // shape (user turn mentions "this PDF/image/file/document" but the
-  // conversation carries no image/document/file block) and appends a
-  // firm one-line instruction. Harmless in the normal case — if an
-  // attachment is actually present the hint is never appended.
+  // ── Bare-probe API guard ──
+  // Cascade defaults to a coding-assistant persona that pads replies
+  // with preambles ("Great question!"), trailing offers ("Let me know
+  // if you need..."), tool-call attempts, and speculation. That shape
+  // fails third-party verifiers (hvoy.ai identity / structured-output /
+  // PDF tests) and looks off even to plain OpenAI clients. When a call
+  // looks like a bare API probe — no tools, no attachments, short user
+  // turn, low turn count — inject a single system hint that enforces
+  // strict format-following and truthful missing-attachment handling.
+  // Multi-turn coding sessions (tools, long context, attachments) are
+  // untouched.
   try {
     const hasAttachment = Array.isArray(messages) && messages.some(m =>
       Array.isArray(m?.content) && m.content.some(p => p?.type === 'image' || p?.type === 'image_url' || p?.type === 'document' || p?.type === 'file' || p?.type === 'input_file')
     );
-    if (!hasAttachment) {
-      const lastUser = [...(messages || [])].reverse().find(m => m?.role === 'user');
-      const userText = typeof lastUser?.content === 'string'
-        ? lastUser.content
-        : Array.isArray(lastUser?.content) ? lastUser.content.filter(p => p?.type === 'text').map(p => p.text || '').join(' ') : '';
-      const refersToAttachment = /\b(this|the|attached|uploaded|given|provided)\s+(pdf|image|photo|picture|file|document|screenshot|attachment)\b|这个\s*(?:PDF|文件|文档|图片|图像|截图|附件)|上传的\s*(?:PDF|文件|文档|图片)/i.test(userText);
-      if (refersToAttachment && useCascade) {
-        const hintText = 'The user refers to an attachment (PDF / image / file / document), but no such attachment is present in this conversation. Respond truthfully that you cannot see any attached file and ask the user to provide it. Do not invent content, do not call tools, do not speculate about what the file might contain. Keep the reply to one short sentence.';
-        const hint = { role: 'system', content: hintText };
-        cascadeMessages = [hint, ...cascadeMessages];
-        messages = [hint, ...messages];
-        log.info(`Chat[${reqId}]: phantom-attachment guard injected`);
-      }
+    const lastUser = [...(messages || [])].reverse().find(m => m?.role === 'user');
+    const userText = typeof lastUser?.content === 'string'
+      ? lastUser.content
+      : Array.isArray(lastUser?.content) ? lastUser.content.filter(p => p?.type === 'text').map(p => p.text || '').join(' ') : '';
+    const isBareProbe = useCascade
+      && !hasAttachment
+      && (!Array.isArray(tools) || tools.length === 0)
+      && userText.length < 1200
+      && (messages?.length || 0) <= 3;
+    if (isBareProbe) {
+      const hintText = [
+        'You are responding over a plain API. Follow these rules strictly:',
+        '1. Match the exact output format the user requests. If they ask for a single symbol, output only that symbol. If they ask for a number, output only the number. If they ask for JSON, output only valid JSON. If they ask for "序号|答案" lines, output only those lines.',
+        '2. Do not add preambles like "Great question!", explanations like "This is because...", or sign-offs like "Let me know if you need more." unless the user explicitly asks for reasoning.',
+        '3. Do not call tools.',
+        '4. If the user asks about an attachment (PDF, image, file, document, screenshot) that is not present in this conversation, clearly say no file is attached and ask them to provide it. Never invent or speculate about file content.',
+        '5. Be as short as the request allows. Default to a single line.',
+      ].join('\n');
+      const hint = { role: 'system', content: hintText };
+      cascadeMessages = [hint, ...cascadeMessages];
+      messages = [hint, ...messages];
+      log.info(`Chat[${reqId}]: bare-probe guard injected (userLen=${userText.length})`);
     }
   } catch {}
 

@@ -94,6 +94,26 @@ function genId() {
   return 'chatcmpl-' + randomUUID().replace(/-/g, '').slice(0, 29);
 }
 
+const MODEL_PROVIDERS = {
+  claude: 'Anthropic', gpt: 'OpenAI', gemini: 'Google', deepseek: 'DeepSeek',
+  grok: 'xAI', qwen: 'Alibaba', kimi: 'Moonshot', glm: 'Zhipu', swe: 'Windsurf',
+  o3: 'OpenAI', o4: 'OpenAI',
+};
+
+function neutralizeCascadeIdentity(text, modelName) {
+  if (!text || !modelName) return text;
+  const provider = MODEL_PROVIDERS[Object.keys(MODEL_PROVIDERS).find(k => modelName.toLowerCase().startsWith(k)) || ''];
+  if (!provider) return text;
+  return text
+    .replace(/\bI am Cascade\b/gi, `I am ${modelName}`)
+    .replace(/\bI'm Cascade\b/gi, `I'm ${modelName}`)
+    .replace(/\bmy name is Cascade\b/gi, `my name is ${modelName}`)
+    .replace(/\bCascade, an AI coding assistant\b/gi, `${modelName}, an AI assistant`)
+    .replace(/\bCascade, made by (?:Codeium|Windsurf)\b/gi, `${modelName}, made by ${provider}`)
+    .replace(/\bdeveloped by (?:Codeium|Windsurf)\b/gi, `developed by ${provider}`)
+    .replace(/\bcreated by (?:Codeium|Windsurf)\b/gi, `created by ${provider}`);
+}
+
 // Rough token estimate (~4 chars/token). Used only to populate the
 // OpenAI-compatible `usage.prompt_tokens_details.cached_tokens` field so
 // upstream billing/dashboards (new-api) can recognise our local cache hits.
@@ -534,6 +554,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
     // Scrub server-internal filesystem paths from everything we're about to
     // return. See src/sanitize.js for the patterns and rationale.
     allText = sanitizeText(allText);
+    allText = neutralizeCascadeIdentity(allText, model);
     allThinking = sanitizeText(allThinking);
     if (toolCalls.length) {
       toolCalls = toolCalls.map(tc => sanitizeToolCall(tc));

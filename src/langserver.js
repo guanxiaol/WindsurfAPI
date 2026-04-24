@@ -185,10 +185,17 @@ export async function ensureLs(proxy = null) {
     });
     proc.stderr.on('data', (data) => {
       const line = data.toString().trim();
-      if (line) log.debug(`[LS:${key}:err] ${line}`);
+      if (line) log.warn(`[LS:${key}:err] ${line}`);
     });
     proc.on('exit', (code, signal) => {
       log.warn(`LS instance ${key} exited: code=${code} signal=${signal}`);
+      if (code === 1) {
+        log.error('LS crashed on startup. Common causes:');
+        log.error('  1. Binary incompatible with this OS/arch — re-download with: bash install-ls.sh');
+        log.error('  2. Missing glibc/libstdc++ — run: ldd ' + _binaryPath + ' | grep "not found"');
+        log.error('  3. Binary corrupted — delete and re-download: rm ' + _binaryPath + ' && bash install-ls.sh');
+        log.error('  4. Port already in use — check: lsof -i :' + port);
+      }
       const gone = _pool.get(key);
       _pool.delete(key);
       if (gone?.port) {

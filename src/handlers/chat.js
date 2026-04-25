@@ -1404,10 +1404,17 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
         try {
           const rl = isAllRateLimited(modelKey);
           const allInternal = streamInternalCount > 0 && tried.length > 0 && streamInternalCount >= tried.length;
-          const errMsg = rl.allLimited
-            ? `${model} 所有账号均已达速率限制，请 ${Math.ceil(rl.retryAfterMs / 1000)} 秒后重试`
-            : allInternal
+          // Prioritize upstream_transient over all-rate-limited the same way
+          // the non-stream path does (chat.js: handleChatCompletions). When
+          // both flags happen to fire (account got marked rate-limited mid-
+          // burst while internal_errors were also accumulating), the more
+          // specific diagnosis is "upstream is throwing internal_error" —
+          // the rate-limit message would send the caller chasing the wrong
+          // thing. Audit catch by codex 5.5.
+          const errMsg = allInternal
             ? upstreamTransientErrorMessage(model, tried.length)
+            : rl.allLimited
+            ? `${model} 所有账号均已达速率限制，请 ${Math.ceil(rl.retryAfterMs / 1000)} 秒后重试`
             : sanitizeText(lastErr?.message || 'no accounts');
           if (allInternal) {
             log.error(`Chat[${reqId}] stream: ${tried.length}/${tried.length} accounts hit upstream_internal_error — surfacing upstream_transient_error`);

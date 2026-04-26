@@ -836,6 +836,331 @@ tbody tr:hover td { background: var(--surface-2); }
 .cap-item.ok { background: var(--success-soft); color: var(--success); }
 .cap-item.fail { background: var(--error-soft); color: var(--error); text-decoration: line-through; }
 
+.expand-chevron, .detail-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all .15s ease;
+  font-size: 10px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.expand-chevron:hover, .detail-toggle:hover {
+  color: var(--text);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+.expand-chevron.open, .detail-toggle.open {
+  color: var(--accent);
+  transform: rotate(90deg);
+}
+.account-detail-row > td {
+  padding: 0 !important;
+  background: #0d0d10 !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+.account-detail-wrap {
+  padding: 18px 24px;
+  background: linear-gradient(180deg, rgba(99,102,241,.04), transparent 80%);
+}
+.detail-grid, .account-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.detail-card, .account-detail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.detail-card.full, .account-detail-card.full, .account-detail-models { grid-column: 1 / -1; }
+.detail-card-head, .account-detail-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+}
+.detail-card-head .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+}
+.detail-kv, .account-detail-kv {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 4px 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+}
+.detail-kv .k { color: var(--text-dim); }
+.detail-kv .v {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.detail-bar, .account-detail-quota {
+  display: grid;
+  grid-template-columns: 64px 1fr 52px;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 7px;
+  font-size: 12px;
+}
+.detail-bar .bar-label {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+.detail-bar .bar-track, .account-detail-bar {
+  height: 7px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.detail-bar .bar-fill, .account-detail-bar span {
+  height: 100%;
+  border-radius: 3px;
+}
+.detail-bar .bar-pct {
+  text-align: right;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+}
+.detail-bar .bar-reset {
+  grid-column: 2 / 4;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+  margin-top: -2px;
+}
+.account-detail-model-group {
+  margin-bottom: 14px;
+}
+.account-detail-model-group:last-child { margin-bottom: 0; }
+.account-detail-model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  padding-bottom: 5px;
+  border-bottom: 1px dashed var(--border);
+}
+.account-detail-model-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+}
+.account-detail-model-count {
+  font-size: 10px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.provider-swatch {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.account-detail-model-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 6px;
+}
+.account-detail-model-chip {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  min-width: 0;
+}
+.account-detail-model-chip.blocked {
+  opacity: .45;
+  background: transparent;
+}
+.account-detail-model-chip .chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+}
+.account-detail-model-chip.blocked .chip-dot { background: var(--error); }
+.account-detail-model-chip .chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.account-detail-model-chip .chip-cost {
+  font-size: 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid rgba(99,102,241,.25);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.chart-main {
+  position: relative;
+}
+.chart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.chart-title-group h3 { margin-bottom: 4px; }
+.chart-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.chart-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.seg-group {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elev);
+}
+.seg-btn {
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 5px 9px;
+  font-size: 11px;
+  font-family: var(--font);
+  cursor: pointer;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.chart-canvas-wrap {
+  position: relative;
+  height: 260px;
+}
+.chart-canvas-wrap canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0;
+  transform: translate(-50%, -110%);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.chart-tooltip.show { opacity: 1; }
+.chart-tooltip .tt-time {
+  color: var(--text-dim);
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+.chart-tooltip .tt-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.chart-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.chart-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.chart-pie-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  align-items: center;
+}
+.chart-pie-body canvas {
+  width: 220px;
+  height: 220px;
+}
+.pie-legend {
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+.pie-legend-row {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.pie-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+.pie-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pie-value {
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+
 /* ─── Utilities ───────────────────────────────── */
 .flex { display: flex; }
 .flex-col { display: flex; flex-direction: column; }
@@ -858,6 +1183,8 @@ tbody tr:hover td { background: var(--surface-2); }
   .sidebar .brand { justify-content: center; padding: 20px 0; }
   .sidebar nav a { justify-content: center; padding: 10px; }
   .main { margin-left: 60px; padding: 20px 16px; }
+  .detail-grid, .chart-grid, .chart-pie-body { grid-template-columns: 1fr; }
+  .chart-pie-body canvas { margin: 0 auto; }
 }
 </style>
 </head>
@@ -1308,6 +1635,54 @@ tbody tr:hover td { background: var(--surface-2); }
 
     <div class="metrics-grid" id="stats-cards"></div>
 
+    <div class="chart chart-main">
+      <div class="chart-header">
+        <div class="chart-title-group">
+          <h3>核心指标趋势</h3>
+          <div class="chart-subtitle" id="stats-main-subtitle">最近 14 天</div>
+        </div>
+        <div class="chart-controls">
+          <div class="seg-group">
+            <button class="seg-btn active" data-stats-metric="requests" onclick="App.setStatsMetric('requests')">请求</button>
+            <button class="seg-btn" data-stats-metric="tokens" onclick="App.setStatsMetric('tokens')">Tokens</button>
+            <button class="seg-btn" data-stats-metric="credits" onclick="App.setStatsMetric('credits')">Credits</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart-canvas-wrap">
+        <canvas id="stats-main-chart"></canvas>
+        <div class="chart-tooltip" id="stats-main-tooltip"></div>
+      </div>
+      <div class="chart-legend" id="stats-main-legend"></div>
+    </div>
+
+    <div class="chart-grid">
+      <div class="chart">
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <h3>模型请求分布</h3>
+            <div class="chart-subtitle">Top 8 模型请求占比</div>
+          </div>
+        </div>
+        <div class="chart-pie-body">
+          <canvas id="stats-model-pie"></canvas>
+          <div class="pie-legend" id="stats-model-pie-legend"></div>
+        </div>
+      </div>
+      <div class="chart">
+        <div class="chart-header">
+          <div class="chart-title-group">
+            <h3>API 入口分布</h3>
+            <div class="chart-subtitle">按请求入口聚合</div>
+          </div>
+        </div>
+        <div class="chart-pie-body">
+          <canvas id="stats-api-pie"></canvas>
+          <div class="pie-legend" id="stats-api-pie-legend"></div>
+        </div>
+      </div>
+    </div>
+
     <div class="chart">
       <h3>请求量（最近 24 小时，基于日总量 × 小时占比折算）</h3>
       <div class="bars" id="stats-chart"></div>
@@ -1469,6 +1844,9 @@ const App = {
   modelAccessConfig: { mode: 'all', list: [] },
   loginHistory: JSON.parse(localStorage.getItem('wl_history') || '[]'),
   _filterTimer: null,
+  statsMetric: 'requests',
+  statsData: null,
+  accountModelCatalog: {},
 
   // Register a polling loader. Guarantees exactly one timer per key even if
   // the loader is invoked repeatedly, and auto-pauses while the tab is
@@ -1803,41 +2181,45 @@ const App = {
 
   // ─── Accounts ────────────────────────────────
   async loadAccounts() {
-    const [d, ov] = await Promise.all([
+    const [d, ov, modelData] = await Promise.all([
       this.api('GET', '/accounts'),
       this.api('GET', '/overview').catch(() => null),
+      this.api('GET', '/models').catch(() => ({})),
     ]);
-    const instances = ov?.langServer?.instances || [];
-    const poolCard = document.getElementById('ls-pool-card');
-    if (poolCard) {
-      if (instances.length > 0) {
-        poolCard.innerHTML = `
-          <div class="section">
-            <div class="section-header">
-              <div>
-                <div class="section-title">语言服务器池</div>
-                <div class="section-desc">${instances.length} 个 LS 实例 · 每个独立代理对应一个进程</div>
+    this.accountModelCatalog = Object.fromEntries((modelData.models || []).map(m => [m.id, m]));
+    if (ov?.langServer) {
+      const instances = ov.langServer.instances || [];
+      const poolCard = document.getElementById('ls-pool-card');
+      if (poolCard) {
+        if (instances.length > 0) {
+          poolCard.innerHTML = `
+            <div class="section">
+              <div class="section-header">
+                <div>
+                  <div class="section-title">语言服务器池</div>
+                  <div class="section-desc">${instances.length} 个 LS 实例 · 每个独立代理对应一个进程</div>
+                </div>
               </div>
-            </div>
-            <div class="section-body">
-              <div class="ls-pool">
-                ${instances.map(i => `
-                  <div class="ls-inst">
-                    <div class="ls-key">
-                      <span class="ls-dot ${i.ready ? '' : 'pending'}"></span>
-                      ${this.esc(i.key === 'default' ? '默认实例' : i.key.replace(/^px_/, ''))}
+              <div class="section-body">
+                <div class="ls-pool">
+                  ${instances.map(i => `
+                    <div class="ls-inst">
+                      <div class="ls-key">
+                        <span class="ls-dot ${i.ready ? '' : 'pending'}"></span>
+                        ${this.esc(i.key === 'default' ? '默认实例' : i.key.replace(/^px_/, ''))}
+                      </div>
+                      <div class="ls-meta">端口 ${i.port} · PID ${i.pid || '-'}</div>
+                      <div class="ls-meta">${this.esc(i.proxy || '无代理')}</div>
                     </div>
-                    <div class="ls-meta">端口 ${i.port} · PID ${i.pid || '-'}</div>
-                    <div class="ls-meta">${this.esc(i.proxy || '无代理')}</div>
-                  </div>
-                `).join('')}
+                  `).join('')}
+                </div>
               </div>
-            </div>
-          </div>`;
+            </div>`;
       } else {
         poolCard.innerHTML = '';
       }
     }
+  }
     const tbody = document.querySelector('#accounts-table tbody');
     const tierLabel = { pro: 'PRO', free: 'FREE', expired: '已过期', unknown: '未知' };
     tbody.innerHTML = (d.accounts || []).map(a => {
@@ -1915,10 +2297,14 @@ const App = {
             ${cr.prompt?.limit ? barHtml('Prompt', cr.percent, null) : ''}
           </div>`;
       }
+      const detailId = `acct-detail-${a.id}`;
       return `
       <tr>
         <td><input type="checkbox" class="acct-cb" data-id="${a.id}" onchange="App.updateBatchBar()"></td>
-        <td><code>${a.id}</code></td>
+        <td>
+          <button class="detail-toggle" onclick="App.toggleAccountDetail('${detailId}', this)" title="展开详情">›</button>
+          <code>${a.id}</code>
+        </td>
         <td>${this.esc(a.email)}</td>
         <td><span class="tier ${tier}">${tierLabel[tier] || tier}</span></td>
         <td>${rpmCell}</td>
@@ -1941,8 +2327,94 @@ const App = {
             <button class="btn btn-ghost btn-xs" style="color:var(--error)" onclick="App.deleteAccount('${a.id}')">删除</button>
           </div>
         </td>
+      </tr>
+      <tr id="${detailId}" class="account-detail-row" style="display:none">
+        <td colspan="12">${this.renderAccountDetail(a, ov)}</td>
       </tr>`;
     }).join('') || '<tr class="empty-row"><td colspan="12">暂无账号，请先添加</td></tr>';
+  },
+
+  toggleAccountDetail(rowId, btn) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const open = row.style.display === 'none';
+    row.style.display = open ? 'table-row' : 'none';
+    if (btn) btn.classList.toggle('open', open);
+  },
+
+  renderAccountDetail(a, ov) {
+    const cr = a.credits || {};
+    const tierModels = a.tierModels || [];
+    const blocked = new Set(a.blockedModels || []);
+    const byProvider = {};
+    tierModels.forEach(id => {
+      const meta = this.accountModelCatalog?.[id] || {};
+      const provider = meta.provider || id.split('/')[0] || 'models';
+      if (!byProvider[provider]) byProvider[provider] = [];
+      byProvider[provider].push({ id, meta, blocked: blocked.has(id) });
+    });
+    const modelGroups = Object.entries(byProvider).map(([provider, models]) => `
+      <div class="account-detail-model-group">
+        <div class="account-detail-model-head">
+          <span class="account-detail-model-name">${this.esc(provider)}</span>
+          <span class="account-detail-model-count">${models.filter(m => !m.blocked).length}/${models.length}</span>
+        </div>
+        <div class="account-detail-model-chips">
+          ${models.map(m => `
+            <div class="account-detail-model-chip ${m.blocked ? 'blocked' : ''}" title="${this.esc(m.id)}">
+              <span class="chip-dot"></span>
+              <span class="chip-name">${this.esc(m.id)}</span>
+              <span class="chip-cost">${m.blocked ? '禁用' : '可用'}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('') || '<div class="text-sm text-dim">暂无模型探测数据，可点击“探测”刷新。</div>';
+
+    const quotaBlock = (label, pct, resetAt) => {
+      if (pct == null) return '';
+      const v = Math.max(0, Math.min(100, Number(pct) || 0));
+      const color = v <= 10 ? 'var(--error)' : v <= 30 ? 'var(--warn, #f59e0b)' : 'var(--success, #10b981)';
+      const reset = resetAt ? new Date(resetAt * 1000).toLocaleString() : '未知';
+      return `
+        <div class="account-detail-quota">
+          <div class="account-detail-kv"><span>${label}</span><strong style="color:${color}">${v.toFixed(1)}%</strong></div>
+          <div class="account-detail-bar"><span style="width:${v}%;background:${color}"></span></div>
+          <div class="account-detail-note">重置：${this.esc(reset)}</div>
+        </div>
+      `;
+    };
+    const lsMatches = (ov?.langServer?.instances || []).filter(i => i.accountId === a.id || i.key === a.callerKey);
+    return `
+      <div class="account-detail-wrap">
+        <div class="account-detail-grid">
+          <div class="account-detail-card">
+            <div class="account-detail-title">账号状态</div>
+            <div class="account-detail-kv"><span>邮箱</span><strong>${this.esc(a.email || '-')}</strong></div>
+            <div class="account-detail-kv"><span>Key 前缀</span><code>${this.esc(a.keyPrefix || '-')}</code></div>
+            <div class="account-detail-kv"><span>错误次数</span><strong>${a.errorCount || 0}</strong></div>
+            <div class="account-detail-kv"><span>最近使用</span><strong>${a.lastUsed ? new Date(a.lastUsed).toLocaleString() : '-'}</strong></div>
+          </div>
+          <div class="account-detail-card">
+            <div class="account-detail-title">订阅与额度</div>
+            <div class="account-detail-kv"><span>计划</span><strong>${this.esc(cr.planName || a.tier || '-')}</strong></div>
+            ${quotaBlock('日额度', cr.dailyPercent, cr.dailyResetAt)}
+            ${quotaBlock('周额度', cr.weeklyPercent, cr.weeklyResetAt)}
+            ${cr.lastError ? `<div class="account-detail-note" style="color:var(--error)">${this.esc(cr.lastError)}</div>` : ''}
+          </div>
+          <div class="account-detail-card">
+            <div class="account-detail-title">运行关联</div>
+            <div class="account-detail-kv"><span>RPM</span><strong>${a.rpmUsed ?? 0}/${a.rpmLimit ?? '-'}</strong></div>
+            <div class="account-detail-kv"><span>限流</span><strong>${a.rateLimited ? '是' : '否'}</strong></div>
+            <div class="account-detail-kv"><span>LS 实例</span><strong>${lsMatches.length || '-'}</strong></div>
+          </div>
+        </div>
+        <div class="account-detail-card account-detail-models">
+          <div class="account-detail-title">模型可用性</div>
+          ${modelGroups}
+        </div>
+      </div>
+    `;
   },
 
   async refreshCredits(id) {
@@ -2468,8 +2940,226 @@ const App = {
     return String(n);
   },
 
+  setStatsMetric(metric) {
+    this.statsMetric = metric;
+    document.querySelectorAll('[data-stats-metric]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.statsMetric === metric);
+    });
+    if (this.statsData) this.renderStatsCharts(this.statsData);
+  },
+
+  _statsSeries(d, metric) {
+    const maps = {
+      requests: d.requestsByDay || {},
+      tokens: d.tokensByDay || {},
+      credits: d.creditsByDay || {},
+    };
+    const labels = {
+      requests: '请求数',
+      tokens: 'Token 消耗',
+      credits: 'Credit 花销',
+    };
+    const days = [];
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    for (let i = 13; i >= 0; i--) {
+      const dayDate = new Date(today.getTime() - i * 86400 * 1000);
+      const key = dayDate.toISOString().slice(0, 10);
+      days.push({ key, label: key.slice(5), value: Number(maps[metric]?.[key] || 0) });
+    }
+    return { label: labels[metric] || labels.requests, points: days };
+  },
+
+  renderStatsCharts(d) {
+    const metric = this.statsMetric || 'requests';
+    document.querySelectorAll('[data-stats-metric]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.statsMetric === metric);
+    });
+    const series = this._statsSeries(d, metric);
+    document.getElementById('stats-main-subtitle').textContent = `最近 14 天 · ${series.label}`;
+    this.drawLineChart('stats-main-chart', series.points, {
+      color: metric === 'credits' ? '#f59e0b' : metric === 'tokens' ? '#8b5cf6' : '#3b82f6',
+      valueFormatter: metric === 'requests'
+        ? v => `${Math.round(v)} 次请求`
+        : metric === 'tokens'
+          ? v => `${this._fmtTokens(v)} Tokens`
+          : v => `${Number(v || 0).toFixed(2)} Credits`,
+      tooltipId: 'stats-main-tooltip',
+    });
+    document.getElementById('stats-main-legend').innerHTML = `
+      <span class="chart-legend-item">
+        <span class="chart-legend-swatch" style="background:${metric === 'credits' ? '#f59e0b' : metric === 'tokens' ? '#8b5cf6' : '#3b82f6'}"></span>
+        ${series.label}
+      </span>
+    `;
+
+    const modelItems = Object.entries(d.modelCounts || {})
+      .map(([name, s]) => ({ name, value: s.requests || 0 }))
+      .sort((a, b) => b.value - a.value);
+    this.drawPieChart('stats-model-pie', 'stats-model-pie-legend', this._topChartItems(modelItems, 8), v => `${v} 次`);
+
+    const apiItems = Object.entries(d.apis || {})
+      .map(([name, s]) => ({ name, value: s.totalRequests || 0 }))
+      .sort((a, b) => b.value - a.value);
+    this.drawPieChart('stats-api-pie', 'stats-api-pie-legend', this._topChartItems(apiItems, 6), v => `${v} 次`);
+  },
+
+  _topChartItems(items, limit) {
+    if (items.length <= limit) return items;
+    const top = items.slice(0, limit);
+    const rest = items.slice(limit).reduce((sum, x) => sum + x.value, 0);
+    if (rest > 0) top.push({ name: '其他', value: rest });
+    return top;
+  },
+
+  drawLineChart(canvasId, points, opts = {}) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const width = Math.max(1, Math.floor(rect.width));
+    const height = Math.max(1, Math.floor(rect.height));
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const pad = { l: 44, r: 16, t: 18, b: 34 };
+    const areaW = width - pad.l - pad.r;
+    const areaH = height - pad.t - pad.b;
+    const color = opts.color || '#3b82f6';
+    const max = Math.max(1, ...points.map(p => p.value || 0));
+    const xAt = i => pad.l + (points.length <= 1 ? areaW / 2 : (areaW * i) / (points.length - 1));
+    const yAt = v => pad.t + areaH - (areaH * (v || 0)) / max;
+
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(255,255,255,.42)';
+    ctx.font = '11px Inter, sans-serif';
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + (areaH * i) / 4;
+      ctx.beginPath();
+      ctx.moveTo(pad.l, y);
+      ctx.lineTo(width - pad.r, y);
+      ctx.stroke();
+      const labelValue = max - (max * i) / 4;
+      ctx.fillText(opts.valueFormatter ? opts.valueFormatter(labelValue).replace(/ .*/, '') : Math.round(labelValue), 6, y + 4);
+    }
+
+    const grad = ctx.createLinearGradient(0, pad.t, 0, height - pad.b);
+    grad.addColorStop(0, color + '55');
+    grad.addColorStop(1, color + '00');
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = xAt(i), y = yAt(p.value);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(xAt(points.length - 1), height - pad.b);
+    ctx.lineTo(xAt(0), height - pad.b);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = xAt(i), y = yAt(p.value);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    points.forEach((p, i) => {
+      const x = xAt(i), y = yAt(p.value);
+      ctx.beginPath();
+      ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f1117';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      if (i % 2 === 0 || points.length <= 8) {
+        ctx.fillStyle = 'rgba(255,255,255,.5)';
+        ctx.textAlign = 'center';
+        ctx.fillText(p.label, x, height - 10);
+      }
+    });
+
+    const tooltip = opts.tooltipId ? document.getElementById(opts.tooltipId) : null;
+    canvas.onmousemove = (e) => {
+      if (!tooltip || !points.length) return;
+      const box = canvas.getBoundingClientRect();
+      const x = e.clientX - box.left;
+      const idx = Math.max(0, Math.min(points.length - 1, Math.round(((x - pad.l) / Math.max(1, areaW)) * (points.length - 1))));
+      const p = points[idx];
+      tooltip.innerHTML = `<div class="tt-time">${this.esc(p.key)}</div><div class="tt-value">${this.esc(opts.valueFormatter ? opts.valueFormatter(p.value) : String(p.value))}</div>`;
+      tooltip.style.left = xAt(idx) + 'px';
+      tooltip.style.top = yAt(p.value) + 'px';
+      tooltip.classList.add('show');
+    };
+    canvas.onmouseleave = () => {
+      if (tooltip) tooltip.classList.remove('show');
+    };
+  },
+
+  drawPieChart(canvasId, legendId, items, formatter = v => String(v)) {
+    const canvas = document.getElementById(canvasId);
+    const legend = document.getElementById(legendId);
+    if (!canvas || !legend) return;
+    const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    const size = Math.max(1, Math.floor(Math.min(rect.width || 220, rect.height || 220)));
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#71717a'];
+    const total = items.reduce((sum, x) => sum + (x.value || 0), 0);
+    if (!total) {
+      legend.innerHTML = '<div class="text-sm text-dim">暂无数据</div>';
+      ctx.fillStyle = 'rgba(255,255,255,.06)';
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size * .34, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    let start = -Math.PI / 2;
+    items.forEach((item, idx) => {
+      const angle = (item.value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(size / 2, size / 2);
+      ctx.arc(size / 2, size / 2, size * .42, start, start + angle);
+      ctx.closePath();
+      ctx.fillStyle = colors[idx % colors.length];
+      ctx.fill();
+      start += angle;
+    });
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size * .24, 0, Math.PI * 2);
+    ctx.fillStyle = '#0f1117';
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.9)';
+    ctx.font = '700 18px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(total), size / 2, size / 2);
+    legend.innerHTML = items.map((item, idx) => {
+      const pct = ((item.value / total) * 100).toFixed(1);
+      return `<div class="pie-legend-row" title="${this.esc(item.name)}">
+        <span class="pie-dot" style="background:${colors[idx % colors.length]}"></span>
+        <span class="pie-name">${this.esc(item.name)}</span>
+        <span class="pie-value">${formatter(item.value)} · ${pct}%</span>
+      </div>`;
+    }).join('');
+  },
+
   async loadStats() {
     const d = await this.api('GET', '/stats');
+    this.statsData = d;
     const totalTokens = d.totalTokens || 0;
     const totalCredits = d.totalCredits || 0;
 
@@ -2482,6 +3172,7 @@ const App = {
       <div class="card info"><div class="card-header"><div class="card-title">Token 总消耗</div></div><div class="card-value">${this._fmtTokens(totalTokens)}</div></div>
       <div class="card accent"><div class="card-header"><div class="card-title">Credits 总花销</div></div><div class="card-value">${totalCredits.toFixed(1)}</div></div>
     `;
+    this.renderStatsCharts(d);
 
     // Per-model stats — now also shows input/output/cached tokens and credits
     // Accumulate token splits from apis[*].models[model].details so the table

@@ -87,17 +87,17 @@ function stableTurns(messages) {
     .map(m => m.role === 'tool' ? { ...m, role: 'tool_result' } : m);
 }
 
-export function fingerprintBefore(messages, modelKey = '') {
+export function fingerprintBefore(messages, modelKey = '', callerKey = '') {
   if (!Array.isArray(messages) || messages.length < 2) return null;
   const turns = stableTurns(messages);
   if (turns.length < 2) return null;
-  return sha256(modelKey + '\0' + JSON.stringify(canonicalise(turns.slice(0, -1))));
+  return sha256(String(callerKey || '') + '\0' + modelKey + '\0' + JSON.stringify(canonicalise(turns.slice(0, -1))));
 }
 
-export function fingerprintAfter(messages, modelKey = '') {
+export function fingerprintAfter(messages, modelKey = '', callerKey = '') {
   const turns = stableTurns(messages);
   if (!turns.length) return null;
-  return sha256(modelKey + '\0' + JSON.stringify(canonicalise(turns)));
+  return sha256(String(callerKey || '') + '\0' + modelKey + '\0' + JSON.stringify(canonicalise(turns)));
 }
 
 function prune(now) {
@@ -120,11 +120,15 @@ function prune(now) {
  * fingerprint on success (or just drop it on failure and a fresh cascade
  * will be created next turn).
  */
-export function checkout(fingerprint) {
+export function checkout(fingerprint, callerKey = '') {
   if (!fingerprint) { stats.misses++; return null; }
   const entry = _pool.get(fingerprint);
   if (!entry) { stats.misses++; return null; }
   _pool.delete(fingerprint);
+  if (entry.callerKey && callerKey && entry.callerKey !== callerKey) {
+    stats.misses++;
+    return null;
+  }
   if (Date.now() - entry.lastAccess > POOL_TTL_MS) {
     stats.expired++;
     stats.misses++;
@@ -137,7 +141,7 @@ export function checkout(fingerprint) {
 /**
  * Store (or restore) a conversation entry under a new fingerprint.
  */
-export function checkin(fingerprint, entry) {
+export function checkin(fingerprint, entry, callerKey = '') {
   if (!fingerprint || !entry) return;
   const now = Date.now();
   _pool.set(fingerprint, {
@@ -145,6 +149,7 @@ export function checkin(fingerprint, entry) {
     sessionId: entry.sessionId,
     lsPort: entry.lsPort,
     apiKey: entry.apiKey,
+    callerKey: callerKey || entry.callerKey || '',
     createdAt: entry.createdAt || now,
     lastAccess: now,
   });

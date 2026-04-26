@@ -148,6 +148,7 @@ export const MODELS = {
   // ── Kimi ────────────────────────────────────────────────
   'kimi-k2':                        { name: 'kimi-k2',                        provider: 'moonshot', enumValue: 323, modelUid: 'MODEL_KIMI_K2', credit: 0.5 },
   'kimi-k2.5':                      { name: 'kimi-k2.5',                      provider: 'moonshot', enumValue: 0,   modelUid: 'kimi-k2-5', credit: 1 },
+  'kimi-k2-6':                      { name: 'kimi-k2-6',                      provider: 'moonshot', enumValue: 0,   modelUid: 'kimi-k2-6', credit: 1 },
 
   // ── GLM ─────────────────────────────────────────────────
   'glm-4.7':                        { name: 'glm-4.7',                        provider: 'zhipu', enumValue: 417, modelUid: 'MODEL_GLM_4_7', credit: 0.25 },
@@ -204,6 +205,18 @@ _lookup.set('gpt-5-4-mini-low', 'gpt-5.4-mini-low');
 _lookup.set('gpt-5-4-mini-medium', 'gpt-5.4-mini-medium');
 _lookup.set('gpt-5-4-mini-high', 'gpt-5.4-mini-high');
 _lookup.set('gpt-5-4-mini-xhigh', 'gpt-5.4-mini-xhigh');
+_lookup.set('gpt-5.4', 'gpt-5.4-medium');
+_lookup.set('gpt-5-4', 'gpt-5.4-medium');
+_lookup.set('gpt-5.2-medium', 'gpt-5.2');
+_lookup.set('gpt-5-2-medium', 'gpt-5.2');
+_lookup.set('gpt-5.1-none', 'gpt-5.1');
+_lookup.set('gpt-5-1-none', 'gpt-5.1');
+_lookup.set('kimi-k2.6', 'kimi-k2-6');
+_lookup.set('kimi-k2-6', 'kimi-k2-6');
+_lookup.set('gemini-3.0-flash-medium', 'gemini-3.0-flash');
+_lookup.set('gemini-3-0-flash-medium', 'gemini-3.0-flash');
+_lookup.set('gemini-3.1-pro', 'gemini-3.1-pro-low');
+_lookup.set('gemini-3-1-pro', 'gemini-3.1-pro-low');
 
 // Anthropic official dated names — Cursor / Claude Code / Anthropic SDK
 // all send these verbatim. Map each to our short key so the same client
@@ -281,6 +294,118 @@ for (const [k, v] of Object.entries(CURSOR_ALIASES)) _lookup.set(k, v);
 export function resolveModel(name) {
   if (!name) return null;
   return _lookup.get(name) || _lookup.get(name.toLowerCase()) || name;
+}
+
+const EFFORT_ALIASES = {
+  minimal: 'minimal',
+  none: 'none',
+  low: 'low',
+  medium: 'medium',
+  med: 'medium',
+  high: 'high',
+  xhigh: 'xhigh',
+  'x-high': 'xhigh',
+  max: 'max',
+};
+
+function normalizeEffort(value) {
+  if (typeof value !== 'string') return null;
+  return EFFORT_ALIASES[value.trim().toLowerCase()] || null;
+}
+
+function wantsFastMode(options = {}) {
+  return options.fast === true
+    || options.fast_mode === true
+    || options.priority === true
+    || options.priority_mode === true
+    || options.windsurf?.fast === true
+    || options.windsurf?.priority === true
+    || options.service_tier === 'priority'
+    || options.service_tier === 'fast'
+    || options.output_config?.fast === true
+    || options.output_config?.priority === true;
+}
+
+function resolveVariant(base, effort, fast) {
+  const direct = resolveModel(base);
+  const variants = [];
+  if (fast && effort) variants.push(`${base}-${effort}-fast`);
+  if (fast && effort === 'medium') variants.push(`${base}-fast`);
+  if (fast && !effort) variants.push(`${base}-fast`);
+  if (effort === 'medium') variants.push(base);
+  if (effort) variants.push(`${base}-${effort}`);
+  variants.push(base, direct);
+  for (const candidate of variants) {
+    const resolved = resolveModel(candidate);
+    if (resolved && MODELS[resolved]) return resolved;
+  }
+  return direct;
+}
+
+export function resolveModelWithOptions(name, options = {}) {
+  const raw = name || null;
+  const resolved = resolveModel(raw);
+  const effort = normalizeEffort(
+    options.reasoning_effort
+    || options.effort
+    || options.output_config?.effort
+    || options.thinking?.effort
+    || options.reasoning?.effort
+    || options.windsurf?.effort
+  );
+  const fast = wantsFastMode(options);
+  const model = resolved || raw;
+  if (!model) return model;
+  if (!effort && !fast) return model;
+
+  if (/^claude-opus-4[.-]7/.test(model) || /^claude-opus-4-7/.test(String(raw || ''))) {
+    return resolveVariant('claude-opus-4.7', effort || 'medium', false);
+  }
+  if (/^claude-sonnet-4[.-]6/.test(model) || /^claude-sonnet-4-6/.test(String(raw || ''))) {
+    if (effort && ['high', 'xhigh', 'max'].includes(effort)) {
+      if (/-1m$/.test(model)) return 'claude-sonnet-4.6-thinking-1m';
+      return 'claude-sonnet-4.6-thinking';
+    }
+    return model;
+  }
+  if (/^claude-opus-4[.-]6/.test(model) || /^claude-opus-4-6/.test(String(raw || ''))) {
+    if (effort && ['high', 'xhigh', 'max'].includes(effort)) return 'claude-opus-4.6-thinking';
+    return model;
+  }
+  if (/^gpt-5\.2-codex/.test(model) || /^gpt-5-2-codex/.test(String(raw || ''))) {
+    return resolveVariant('gpt-5.2-codex', effort || 'medium', fast);
+  }
+  if (/^gpt-5\.2/.test(model) || /^gpt-5-2/.test(String(raw || ''))) {
+    return resolveVariant('gpt-5.2', effort || 'medium', fast);
+  }
+  if (/^gpt-5\.1/.test(model) || /^gpt-5-1/.test(String(raw || ''))) {
+    return resolveVariant('gpt-5.1', effort || null, fast);
+  }
+  if (/^gpt-5\.4-mini/.test(model) || /^gpt-5-4-mini/.test(String(raw || ''))) {
+    return resolveVariant('gpt-5.4-mini', effort || 'medium', false);
+  }
+  if (/^gpt-5\.4/.test(model) || /^gpt-5-4/.test(String(raw || ''))) {
+    return resolveVariant('gpt-5.4', effort || 'medium', false);
+  }
+  if (/^gemini-3\.0-flash/.test(model) || /^gemini-3-0-flash/.test(String(raw || ''))) {
+    const geminiEffort = effort === 'none' ? 'minimal' : effort;
+    return resolveVariant('gemini-3.0-flash', geminiEffort || 'medium', false);
+  }
+  if (/^gemini-3\.1-pro/.test(model) || /^gemini-3-1-pro/.test(String(raw || ''))) {
+    return resolveVariant('gemini-3.1-pro', effort === 'high' ? 'high' : 'low', false);
+  }
+  if (/^grok-3-mini/.test(model) && effort && ['high', 'xhigh', 'max'].includes(effort)) {
+    return 'grok-3-mini-thinking';
+  }
+  if (/^swe-1\.5/.test(model) || /^swe-1-5/.test(String(raw || ''))) {
+    return fast ? 'swe-1.5-fast' : 'swe-1.5';
+  }
+  if (/^swe-1\.6/.test(model) || /^swe-1-6/.test(String(raw || ''))) {
+    return fast ? 'swe-1.6-fast' : 'swe-1.6';
+  }
+  if (model === 'arena') return fast ? 'arena-fast' : 'arena-smart';
+
+  return model;
 }
 
 /** Get model info including enum and uid. */

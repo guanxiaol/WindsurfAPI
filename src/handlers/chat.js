@@ -6,7 +6,7 @@
 import { randomUUID } from 'crypto';
 import { WindsurfClient } from '../client.js';
 import { getApiKey, acquireAccountByKey, reportError, reportSuccess, markRateLimited, reportInternalError, updateCapability, getAccountList, isAllRateLimited } from '../auth.js';
-import { resolveModel, getModelInfo } from '../models.js';
+import { resolveModelWithOptions, getModelInfo } from '../models.js';
 import { getLsFor, ensureLs } from '../langserver.js';
 import { config, log } from '../config.js';
 import { recordRequest } from '../dashboard/stats.js';
@@ -156,7 +156,7 @@ async function waitForAccount(tried, signal, maxWaitMs = QUEUE_MAX_WAIT_MS, mode
   return acct;
 }
 
-export async function handleChatCompletions(body) {
+export async function handleChatCompletions(body, deps = {}) {
   const {
     model: reqModel,
     messages,
@@ -166,11 +166,12 @@ export async function handleChatCompletions(body) {
     tool_choice,
   } = body;
 
-  const modelKey = resolveModel(reqModel || config.defaultModel);
+  const modelKey = resolveModelWithOptions(reqModel || config.defaultModel, body);
   const modelInfo = getModelInfo(modelKey);
   const displayModel = modelInfo?.name || reqModel || config.defaultModel;
   const creditMultiplier = modelInfo?.credit || 0;
   const source = body._source || 'POST /v1/chat/completions';
+  const callerKey = deps.callerKey || deps.context?.callerKey || '';
   const modelEnum = modelInfo?.enumValue || 0;
   const modelUid = modelInfo?.modelUid || null;
   // Models with a modelUid use the Cascade flow (StartCascade → SendUserCascadeMessage).
@@ -248,7 +249,7 @@ export async function handleChatCompletions(body) {
   const ckey = cacheKey(body);
 
   if (stream) {
-    return streamResponse(chatId, created, displayModel, modelKey, messages, cascadeMessages, modelEnum, modelUid, useCascade, ckey, emulateTools, toolPreamble, source, creditMultiplier);
+    return streamResponse(chatId, created, displayModel, modelKey, messages, cascadeMessages, modelEnum, modelUid, useCascade, ckey, emulateTools, toolPreamble, source, creditMultiplier, callerKey);
   }
 
   // ── Local response cache (exact body match) ─────────────
@@ -281,8 +282,8 @@ export async function handleChatCompletions(body) {
   // collapse a conversation whose assistant turns contain synthesised
   // <tool_call> markup and whose user turns contain <tool_result> wrappers.
   const reuseEnabled = useCascade && !emulateTools && isExperimentalEnabled('cascadeConversationReuse');
-  const fpBefore = reuseEnabled ? fingerprintBefore(messages, modelKey) : null;
-  let reuseEntry = reuseEnabled ? poolCheckout(fpBefore) : null;
+  const fpBefore = reuseEnabled ? fingerprintBefore(messages, modelKey, callerKey) : null;
+  let reuseEntry = reuseEnabled ? poolCheckout(fpBefore, callerKey) : null;
   if (reuseEntry) log.info(`Chat: cascade reuse HIT cascadeId=${reuseEntry.cascadeId.slice(0, 8)}… model=${displayModel}`);
 
   // Non-stream: retry with a different account on model-not-available errors
@@ -338,7 +339,7 @@ export async function handleChatCompletions(body) {
     const result = await nonStreamResponse(
       client, chatId, created, displayModel, modelKey, messages, cascadeMessages, modelEnum, modelUid,
       useCascade, acct.apiKey, ckey,
-      reuseEnabled ? { reuseEntry, lsPort: ls.port, apiKey: acct.apiKey } : null,
+      reuseEnabled ? { reuseEntry, lsPort: ls.port, apiKey: acct.apiKey, callerKey } : null,
       emulateTools, toolPreamble,
       source, creditMultiplier,
     );
@@ -425,14 +426,14 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
     // Check the cascade back into the pool under the *post-turn* fingerprint
     // so the next request in the same conversation can resume it.
     if (poolCtx && cascadeMeta?.cascadeId && allText) {
-      const fpAfter = fingerprintAfter(messages, modelKey);
+      const fpAfter = fingerprintAfter(messages, modelKey, poolCtx.callerKey || '');
       poolCheckin(fpAfter, {
         cascadeId: cascadeMeta.cascadeId,
         sessionId: cascadeMeta.sessionId,
         lsPort: poolCtx.lsPort,
         apiKey: poolCtx.apiKey,
         createdAt: poolCtx.reuseEntry?.createdAt,
-      });
+      }, poolCtx.callerKey || '');
     }
 
     reportSuccess(apiKey);
@@ -524,7 +525,7 @@ async function nonStreamResponse(client, id, created, model, modelKey, messages,
   }
 }
 
-function streamResponse(id, created, model, modelKey, messages, cascadeMessages, modelEnum, modelUid, useCascade, ckey, emulateTools, toolPreamble, source = 'POST /v1/chat/completions', creditMultiplier = 0) {
+function streamResponse(id, created, model, modelKey, messages, cascadeMessages, modelEnum, modelUid, useCascade, ckey, emulateTools, toolPreamble, source = 'POST /v1/chat/completions', creditMultiplier = 0, callerKey = '') {
   return {
     status: 200,
     stream: true,
@@ -605,8 +606,8 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
       // tool-emulation mode because the fingerprint can't collapse turns
       // whose bodies carry <tool_call>/<tool_result> markup.
       const reuseEnabled = useCascade && !emulateTools && isExperimentalEnabled('cascadeConversationReuse');
-      const fpBefore = reuseEnabled ? fingerprintBefore(messages, modelKey) : null;
-      let reuseEntry = reuseEnabled ? poolCheckout(fpBefore) : null;
+      const fpBefore = reuseEnabled ? fingerprintBefore(messages, modelKey, callerKey) : null;
+      let reuseEntry = reuseEnabled ? poolCheckout(fpBefore, callerKey) : null;
       if (reuseEntry) log.info(`Chat: cascade reuse HIT cascadeId=${reuseEntry.cascadeId.slice(0, 8)}… stream model=${model}`);
 
       // Always strip <tool_call>/<tool_result> blocks in Cascade mode.
@@ -756,14 +757,14 @@ function streamResponse(id, created, model, modelKey, messages, cascadeMessages,
             emitThinking(pathStreamThinking.flush());
             // Pool check-in on success (cascade only)
             if (reuseEnabled && cascadeResult?.cascadeId && accText) {
-              const fpAfter = fingerprintAfter(messages, modelKey);
+              const fpAfter = fingerprintAfter(messages, modelKey, callerKey);
               poolCheckin(fpAfter, {
                 cascadeId: cascadeResult.cascadeId,
                 sessionId: cascadeResult.sessionId,
                 lsPort: ls.port,
                 apiKey: currentApiKey,
                 createdAt: reuseEntry?.createdAt,
-              });
+              }, callerKey);
             }
             // success
             if (hadSuccess) reportSuccess(currentApiKey);

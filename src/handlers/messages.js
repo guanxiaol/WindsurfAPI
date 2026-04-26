@@ -323,6 +323,13 @@ function buildOpenAIBody(anthropicBody) {
     messages,
     stream: !!anthropicBody.stream,
   };
+  if (effort) openaiBody.reasoning_effort = effort;
+  if (anthropicBody.output_config?.fast === true || anthropicBody.output_config?.priority === true) {
+    openaiBody.fast = true;
+  }
+  if (anthropicBody.service_tier === 'priority' || anthropicBody.service_tier === 'fast') {
+    openaiBody.service_tier = anthropicBody.service_tier;
+  }
   if (typeof anthropicBody.max_tokens === 'number') openaiBody.max_tokens = anthropicBody.max_tokens;
   if (typeof anthropicBody.temperature === 'number') openaiBody.temperature = anthropicBody.temperature;
   if (typeof anthropicBody.top_p === 'number') openaiBody.top_p = anthropicBody.top_p;
@@ -635,7 +642,7 @@ class AnthropicStreamTransform {
 
 // ── Public entry ───────────────────────────────────────────
 
-export async function handleMessages(anthropicBody) {
+export async function handleMessages(anthropicBody, deps = {}) {
   // Validate minimum contract
   if (!anthropicBody || !Array.isArray(anthropicBody.messages) || !anthropicBody.messages.length) {
     return {
@@ -658,7 +665,7 @@ export async function handleMessages(anthropicBody) {
 
   // Non-stream path: delegate and re-shape the body.
   if (!openaiBody.stream) {
-    const result = await handleChatCompletions(openaiBody);
+    const result = await handleChatCompletions(openaiBody, deps);
     if (result.status !== 200) {
       // Re-shape the error envelope to Anthropic's shape
       const msg = result.body?.error?.message || 'Unknown error';
@@ -688,7 +695,7 @@ export async function handleMessages(anthropicBody) {
   }
 
   // Stream path: delegate and wrap the response with our transform.
-  const result = await handleChatCompletions(openaiBody);
+  const result = await handleChatCompletions(openaiBody, deps);
   if (result.status !== 200 || !result.stream) {
     // Upstream returned a synchronous error before streaming started — re-shape
     const msg = result.body?.error?.message || 'Upstream failed to start stream';

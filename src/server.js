@@ -2,6 +2,7 @@
  * OpenAI-compatible HTTP server with multi-account management.
  *
  *   POST /v1/chat/completions       — chat completions
+ *   POST /v1/responses              — OpenAI Responses API
  *   GET  /v1/models                 — list models
  *   POST /auth/login                — add account (email+password / token / api_key)
  *   GET  /auth/accounts             — list all accounts
@@ -21,8 +22,11 @@ import {
 import { handleChatCompletions } from './handlers/chat.js';
 import { handleModels } from './handlers/models.js';
 import { handleMessages } from './handlers/messages.js';
+import { handleResponses } from './handlers/responses.js';
 import { handleDashboardApi } from './dashboard/api.js';
 import { config, log } from './config.js';
+import { callerKeyFromRequest } from './caller-key.js';
+import { VERSION } from './version.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -51,7 +55,7 @@ function json(res, status, body) {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key, anthropic-version, anthropic-beta',
   });
   res.end(data);
 }
@@ -66,7 +70,7 @@ async function route(req, res) {
     return json(res, 200, {
       status: 'ok',
       provider: 'WindsurfPoolAPI',
-      version: '2.0.4',
+      version: VERSION,
       uptime: Math.round(process.uptime()),
       accounts: counts,
     });
@@ -172,7 +176,9 @@ async function route(req, res) {
 
   // ─── API endpoints (require API key) ────────────────────
 
-  if (!validateApiKey(extractToken(req))) {
+  const callerToken = extractToken(req);
+  const callerKey = callerKeyFromRequest(req, callerToken);
+  if (!validateApiKey(callerToken)) {
     return json(res, 401, { error: { message: 'Invalid API key', type: 'auth_error' } });
   }
 
@@ -199,13 +205,38 @@ async function route(req, res) {
     }
 
     body._source = 'POST /v1/chat/completions';
-    const result = await handleChatCompletions(body);
+    const result = await handleChatCompletions(body, { callerKey });
     if (result.stream) {
       // Streaming tuning: keep the socket hot and unblock the first byte.
       //   setNoDelay — disable Nagle so small SSE deltas aren't coalesced (40ms win)
       //   setKeepAlive + setTimeout(0) — survive long thinking pauses w/o RST
       //   flushHeaders — push HTTP response line + headers to the client NOW,
       //     so SSE clients (esp. CC) exit their "connecting" state immediately
+      req.socket?.setKeepAlive(true);
+      req.setTimeout(0);
+      res.socket?.setNoDelay(true);
+      res.writeHead(result.status, { 'Access-Control-Allow-Origin': '*', ...result.headers });
+      res.flushHeaders?.();
+      await result.handler(res);
+    } else {
+      json(res, result.status, result.body);
+    }
+    return;
+  }
+
+  if (path === '/v1/responses' && method === 'POST') {
+    if (!isAuthenticated()) {
+      return json(res, 503, {
+        error: { message: 'No active accounts. POST /auth/login to add accounts.', type: 'auth_error' },
+      });
+    }
+
+    let body;
+    try { body = JSON.parse(await readBody(req)); } catch {
+      return json(res, 400, { error: { message: 'Invalid JSON', type: 'invalid_request' } });
+    }
+    const result = await handleResponses(body, { context: { callerKey } });
+    if (result.stream) {
       req.socket?.setKeepAlive(true);
       req.setTimeout(0);
       res.socket?.setNoDelay(true);
@@ -231,7 +262,7 @@ async function route(req, res) {
     if (!Array.isArray(body.messages) || body.messages.length === 0) {
       return json(res, 400, { type: 'error', error: { type: 'invalid_request_error', message: 'messages must be a non-empty array' } });
     }
-    const result = await handleMessages(body);
+    const result = await handleMessages(body, { callerKey });
     if (result.stream) {
       // Same streaming tuning as /v1/chat/completions — see comment above.
       req.socket?.setKeepAlive(true);
@@ -288,6 +319,7 @@ export function startServer() {
   server.listen({ port: config.port, host: '0.0.0.0' }, () => {
     log.info(`Server on http://0.0.0.0:${config.port}`);
     log.info('  POST /v1/chat/completions  (OpenAI format)');
+    log.info('  POST /v1/responses         (OpenAI Responses format)');
     log.info('  POST /v1/messages          (Anthropic format — Claude Code native)');
     log.info('  GET  /v1/models');
     log.info('  POST /auth/login           (add account)');

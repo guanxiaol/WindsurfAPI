@@ -1,6 +1,6 @@
 {
   "name": "windsurfapi",
-  "version": "2.0.4",
+  "version": "2.0.7",
   "description": "Windsurf → OpenAI / Anthropic compatible proxy with multi-account pool, token/credit stats, and admin dashboard.",
   "type": "module",
   "main": "src/index.js",
